@@ -15,6 +15,11 @@ public class HelloworldApplication {
 
     @GetMapping("/")
     public String hello() {
-        return String.format("Hello Caden!");
+        return "{\"message\": \"Hello Caden!\"}";
+    }
+
+    @GetMapping("/hello-binh")
+    public String helloBinh() {
+        return "{\"message\": \"Hello Binh!\"}";
     }
 }
