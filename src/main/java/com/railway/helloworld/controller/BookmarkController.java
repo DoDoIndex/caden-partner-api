@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.railway.helloworld.model.Bookmark;
+import com.railway.helloworld.model.BookmarkItemRequest;
 import com.railway.helloworld.repository.BookmarkRepo;
 
 @RestController
