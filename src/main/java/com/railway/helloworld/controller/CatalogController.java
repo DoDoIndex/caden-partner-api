@@ -52,14 +52,3 @@ public class CatalogController {
         return "Product details with pricing";
     }
 }
-
-class PriceUpdateRequest {
-
-    public String product_id;
-    public double price_markup_percent;
-}
-
-class BookmarkItemRequest {
-
-    public String product_id;
-}
