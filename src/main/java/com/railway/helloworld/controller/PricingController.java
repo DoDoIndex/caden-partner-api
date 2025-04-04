@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.railway.helloworld.model.Pricing;
+import com.railway.helloworld.model.PricingModel;
 import com.railway.helloworld.repository.PricingRepo;
 
 @RestController
@@ -27,19 +27,19 @@ public class PricingController {
 
     // Get all pricing data
     @GetMapping
-    public List<Pricing> getAllPricing() {
+    public List<PricingModel> getAllPricing() {
         return pricingRepo.getAllPricing().getBody();
     }
 
-    // Get pricing by SKU
-    @GetMapping("/{sku}")
-    public Pricing getPricingBySku(@PathVariable String sku) {
-        return pricingRepo.getPricingBySku(sku).getBody().orElse(null);
+    // Get pricing by productId
+    @GetMapping("/{productId}")
+    public PricingModel getPricingByProdyctId(@PathVariable Integer productId) {
+        return pricingRepo.getPricingByProductId(productId).getBody().orElse(null);
     }
 
-    // Update pricing by SKU
-    @PostMapping("/update/{sku}")
-    public void updatePricingBySku(@PathVariable String sku, @RequestBody Float unitPrice) {
-        pricingRepo.updatePricingBySku(sku, unitPrice);
+    // Update pricing by productId
+    @PostMapping("/update/{productId}")
+    public void updatePricingByProductId(@PathVariable Integer productId, @RequestBody Float unitPrice) {
+        pricingRepo.updatePricingByProductId(productId, unitPrice);
     }
 }

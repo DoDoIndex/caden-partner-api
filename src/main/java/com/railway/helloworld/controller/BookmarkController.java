@@ -10,36 +10,36 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.railway.helloworld.model.Bookmark;
-import com.railway.helloworld.repository.BookmarkRepo;
+import com.railway.helloworld.model.BookmarksModel;
+import com.railway.helloworld.repository.BookmarksRepo;
 
 @RestController
 @RequestMapping("/api/bookmarks")
 public class BookmarkController {
 
-    private final BookmarkRepo bookmarkRepo;
+    private final BookmarksRepo bookmarkRepo;
 
     // Constructor injection for BookmarkRepo
     @Autowired
-    public BookmarkController(BookmarkRepo bookmarkRepo) {
+    public BookmarkController(BookmarksRepo bookmarkRepo) {
         this.bookmarkRepo = bookmarkRepo;
     }
 
     // Get all bookmarks
     @GetMapping
-    public List<Bookmark> getAllBookmarks() {
+    public List<BookmarksModel> getAllBookmarks() {
         return bookmarkRepo.getAllBookmarks().getBody();
     }
 
     // Get bookmark by ID
     @GetMapping("/{bookmarkId}")
-    public Bookmark getBookmarkById(@PathVariable String bookmarkId) {
+    public BookmarksModel getBookmarkById(@PathVariable String bookmarkId) {
         return bookmarkRepo.gettBookmarkById(bookmarkId).getBody().orElse(null);
     }
 
     // Create a new bookmark
     @PostMapping("/create")
-    public void createBookmark(@RequestBody Bookmark bookmark) {
+    public void createBookmark(@RequestBody BookmarksModel bookmark) {
         bookmarkRepo.createBookmark(bookmark);
     }
 }

@@ -8,35 +8,35 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.railway.helloworld.model.Catalog;
-import com.railway.helloworld.repository.CatalogRepo;
+import com.railway.helloworld.model.TilesModel;
+import com.railway.helloworld.repository.TilesRepo;
 
 @RestController
 @RequestMapping("/api/catalog")
-public class CatalogController {
+public class TilesController {
 
-    private final CatalogRepo catalogRepo;
+    private final TilesRepo tilesRepo;
 
-    // Constructor injection for CatalogRepo
+    // Constructor injection for tilesRepo
     @Autowired
-    public CatalogController(CatalogRepo catalogRepo) {
-        this.catalogRepo = catalogRepo;
+    public TilesController(TilesRepo tilesRepo) {
+        this.tilesRepo = tilesRepo;
     }
 
     // Import catalog data from CSV file
     @GetMapping("/sync") // import catalog data from CSV file
     public void importCatalogData() {
-        catalogRepo.importDataToCatalog();
+        tilesRepo.importDataToCatalog();
     }
 
     // Get all products in the catalog
     @GetMapping
-    public List<Catalog> getAllProducts() {
-        return catalogRepo.getAllProducts().getBody();
+    public List<TilesModel> getAllProducts() {
+        return tilesRepo.getAllProducts().getBody();
     }
 
     @GetMapping("/product/details")
-    public Catalog getProductDetails(@RequestParam String sku) {
-        return catalogRepo.getProductDetails(sku).getBody();
+    public TilesModel getProductDetails(@RequestParam Integer productId) {
+        return tilesRepo.getProductDetails(productId).getBody();
     }
 }
