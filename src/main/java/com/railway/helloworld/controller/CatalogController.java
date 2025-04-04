@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,7 +24,7 @@ public class CatalogController {
     }
 
     // Import catalog data from CSV file
-    @PostMapping("/sync") // import catalog data from CSV file
+    @GetMapping("/sync") // import catalog data from CSV file
     public void importCatalogData() {
         catalogRepo.importDataToCatalog();
     }
