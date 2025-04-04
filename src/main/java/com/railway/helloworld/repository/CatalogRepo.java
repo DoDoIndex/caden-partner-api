@@ -103,6 +103,9 @@ public class CatalogRepo {
             String sql = "INSERT INTO catalog (sku, collection, name, texture, material, size, size_advance, unit_of_measurement, quantity_per_box, coverage, unit_price, weight, color, categories, images) "
                     + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+            // SQL query to insert data into pricing table
+            String sqlPricing = "INSERT INTO pricing (sku, unit_price) VALUES (?, ?) ON CONFLICT (sku) DO UPDATE SET unit_price = ?";
+
             // Loop through the list of Catalog objects and insert each one into the database
             for (Catalog catalog : catalogList) {
                 jdbcTemplate.update(sql,
@@ -116,11 +119,15 @@ public class CatalogRepo {
                         catalog.getUnitOfMeasurement(),
                         catalog.getQuantityPerBox(),
                         catalog.getCoverage(),
-                        catalog.getUnitPrice() * 1.3f, // Apply markup of 30% by default
+                        catalog.getUnitPrice(),
                         catalog.getWeight(),
                         catalog.getColor(),
                         catalog.getCategories(),
                         catalog.getImages()
+                );
+                jdbcTemplate.update(sqlPricing,
+                        catalog.getSku(),
+                        catalog.getUnitPrice() * 1.3f // Apply markup of 30% by default
                 );
             }
 
