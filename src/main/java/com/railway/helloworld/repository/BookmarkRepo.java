@@ -77,9 +77,8 @@ public class BookmarkRepo {
         String sql = "INSERT INTO bookmark (bookmark_id, name, created_on) VALUES (?, ?, ?)";
         try {
             // Validation
-            // Check if the bookmark ID is valid (UUID format)
             // Check if the name is null or empty
-            if (bookmark.getBookmarkId().toString().length() != 36 || bookmark.getName() == null) {
+            if (bookmark.getName() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // Return 400 Bad Request
             }
 
@@ -90,10 +89,15 @@ public class BookmarkRepo {
                 return ResponseEntity.status(HttpStatus.CONFLICT).build(); // Return 409 Conflict
             }
 
+            // Generate a new UUID if bookmarkId is null
+            if (bookmark.getBookmarkId() == null) {
+                bookmark.setBookmarkId(UUID.randomUUID()); // Generate a new UUID
+            }
             // Insert the new bookmark
             if (bookmark.getCreatedOn() == null) {
                 bookmark.setCreatedOn(new Date()); // Set the current date if createdOn is null
             }
+            // Insert the bookmark into the database
             jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getName(), bookmark.getCreatedOn());
             return ResponseEntity.status(HttpStatus.CREATED).build(); // Return 201 Created
         } catch (Exception e) {
