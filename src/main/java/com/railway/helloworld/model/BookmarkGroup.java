@@ -2,7 +2,7 @@ package com.railway.helloworld.model;
 
 import java.util.UUID;
 
-class BookmarkGroup {
+public class BookmarkGroup {
 
     private UUID bookmarkId;
     private String SKU;
