@@ -1,18 +1,16 @@
 package com.railway.helloworld.model;
 
-import java.util.UUID;
-
 public class Pricing {
 
-    private UUID sku;
+    private String sku;
     private Float unitPrice;
 
     // Getters and Setters
-    public UUID getSku() {
+    public String getSku() {
         return sku;
     }
 
-    public void setSku(UUID sku) {
+    public void setSku(String sku) {
         this.sku = sku;
     }
 
