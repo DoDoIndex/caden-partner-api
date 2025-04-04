@@ -16,7 +16,7 @@ public class Catalog {
     private Float weight;
     private String color;
     private String categories;
-    private String imageUrl;
+    private String images;
 
     public String getSku() {
         return sku;
@@ -130,11 +130,11 @@ public class Catalog {
         this.categories = categories;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getImages() {
+        return images;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setImages(String images) {
+        this.images = images;
     }
 }
