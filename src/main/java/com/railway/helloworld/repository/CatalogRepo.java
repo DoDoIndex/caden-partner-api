@@ -46,6 +46,24 @@ public class CatalogRepo {
         return catalog;
     };
 
+    private Float parseFloat(String value) {
+        try {
+            return (value == null || value.isEmpty()) ? 0.0f : Float.parseFloat(value);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid float value: " + value);
+            return 0.0f; // Default value
+        }
+    }
+
+    private Integer parseInteger(String value) {
+        try {
+            return (value == null || value.isEmpty()) ? 0 : Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid integer value: " + value);
+            return 0; // Default value
+        }
+    }
+
     // Read csv file
     private List<Catalog> readCatalogFromCSV(String filePath) {
         List<Catalog> catalogList = new ArrayList<>();
@@ -70,10 +88,10 @@ public class CatalogRepo {
                 catalog.setSize(columns[9]);
                 catalog.setSizeAdvance(columns[10]);
                 catalog.setUnitOfMeasurement(columns[3]);
-                catalog.setQuantityPerBox(Integer.parseInt(columns[4]));
-                catalog.setCoverage(Float.parseFloat(columns[5]));
-                catalog.setUnitPrice(Float.parseFloat(columns[6]));
-                catalog.setWeight(Float.parseFloat(columns[13]));
+                catalog.setQuantityPerBox(parseInteger(columns[4])); // Use helper method
+                catalog.setCoverage(parseFloat(columns[5])); // Use helper method
+                catalog.setUnitPrice(parseFloat(columns[6])); // Use helper method
+                catalog.setWeight(parseFloat(columns[13])); // Use helper method
                 catalog.setColor(columns[14]);
                 catalog.setCategories(columns[16]);
                 catalog.setImages(columns[18]);
@@ -89,7 +107,7 @@ public class CatalogRepo {
     }
 
     // Create catalog (insert into database from a csv file)
-    public ResponseEntity importDataToCatalog() {
+    public ResponseEntity<String> importDataToCatalog() {
         try {
             // Read data from the CSV file
             List<Catalog> catalogList = readCatalogFromCSV("E:\\DaiHoc\\HK6_2024-2025\\T2. IE303 - Cong nghe Java\\Project\\export.csv");
@@ -101,7 +119,8 @@ public class CatalogRepo {
 
             // SQL query to insert data into the catalog table
             String sql = "INSERT INTO catalog (sku, collection, name, texture, material, size, size_advance, unit_of_measurement, quantity_per_box, coverage, unit_price, weight, color, categories, images) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                    + "ON CONFLICT (sku) DO NOTHING";
 
             // SQL query to insert data into pricing table
             String sqlPricing = "INSERT INTO pricing (sku, unit_price) VALUES (?, ?) ON CONFLICT (sku) DO UPDATE SET unit_price = ?";
@@ -127,7 +146,8 @@ public class CatalogRepo {
                 );
                 jdbcTemplate.update(sqlPricing,
                         catalog.getSku(),
-                        catalog.getUnitPrice() * 1.3f // Apply markup of 30% by default
+                        catalog.getUnitPrice() * 1.3f, // Apply markup of 30% by default for INSERT
+                        catalog.getUnitPrice() * 1.3f // Apply markup of 30% by default for UPDATE
                 );
             }
 
