@@ -1,8 +1,8 @@
 package com.railway.helloworld.model;
 
-public class Catalog {
+public class TilesModel {
 
-    private String sku;
+    private Integer productId;
     private String collection;
     private String name;
     private String texture;
@@ -18,12 +18,12 @@ public class Catalog {
     private String categories;
     private String images;
 
-    public String getSku() {
-        return sku;
+    public Integer getProductId() {
+        return productId;
     }
 
-    public void setSku(String sku) {
-        this.sku = sku;
+    public void setProductId(Integer productId) {
+        this.productId = productId;
     }
 
     public String getCollection() {

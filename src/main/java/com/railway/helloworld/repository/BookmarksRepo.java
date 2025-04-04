@@ -12,33 +12,33 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.railway.helloworld.model.Bookmark;
+import com.railway.helloworld.model.BookmarksModel;
 
 @Repository
-public class BookmarkRepo {
+public class BookmarksRepo {
 
     private final JdbcTemplate jdbcTemplate;
 
     // Constructor injection for JdbcTemplate
     @Autowired
-    public BookmarkRepo(JdbcTemplate jdbcTemplate) {
+    public BookmarksRepo(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     // RowMapper to convert database rows to Bookmark objects
-    private final RowMapper<Bookmark> bookmarkRowMapper = (rs, rowNum) -> {
-        Bookmark bookmark = new Bookmark();
+    private final RowMapper<BookmarksModel> bookmarksRowMapper = (rs, rowNum) -> {
+        BookmarksModel bookmark = new BookmarksModel();
         bookmark.setBookmarkId(rs.getObject("bookmark_id", UUID.class));
-        bookmark.setName(rs.getString("name"));
-        bookmark.setCreatedOn(rs.getDate("created_on"));
+        bookmark.setBookmarkName(rs.getString("bookmark_name"));
+        bookmark.setDateCreated(rs.getDate("created_on"));
         return bookmark;
     };
 
     // Get all bookmarks
-    public ResponseEntity<List<Bookmark>> getAllBookmarks() {
-        String sql = "SELECT * FROM bookmark";
+    public ResponseEntity<List<BookmarksModel>> getAllBookmarks() {
+        String sql = "SELECT * FROM bookmarks";
         try {
-            List<Bookmark> bookmarks = jdbcTemplate.query(sql, bookmarkRowMapper);
+            List<BookmarksModel> bookmarks = jdbcTemplate.query(sql, bookmarksRowMapper);
             return ResponseEntity.ok(bookmarks); // Return 200 OK with the list of bookmarks
         } catch (Exception e) {
             // Log the error (optional)
@@ -53,10 +53,10 @@ public class BookmarkRepo {
     // Find bookmark by ID 
     // Sử dụng Optional vì có thể không tìm thấy bookmark với ID đó
     // Optional giúp tránh NullPointerException
-    public ResponseEntity<Optional<Bookmark>> gettBookmarkById(String bookmarkId) {
-        String sql = "SELECT * FROM bookmark WHERE bookmark_id = ?";
+    public ResponseEntity<Optional<BookmarksModel>> gettBookmarkById(String bookmarkId) {
+        String sql = "SELECT * FROM bookmarks WHERE bookmark_id = ?";
         try {
-            List<Bookmark> bookmarks = jdbcTemplate.query(sql, bookmarkRowMapper, bookmarkId);
+            List<BookmarksModel> bookmarks = jdbcTemplate.query(sql, bookmarksRowMapper, bookmarkId);
             if (bookmarks.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Return 404 Not Found
             } else {
@@ -73,17 +73,17 @@ public class BookmarkRepo {
     }
 
     // Create a new bookmark group
-    public ResponseEntity createBookmark(Bookmark bookmark) {
-        String sql = "INSERT INTO bookmark (bookmark_id, name, created_on) VALUES (?, ?, ?)";
+    public ResponseEntity<String> createBookmark(BookmarksModel bookmark) {
+        String sql = "INSERT INTO bookmarks (bookmark_id, bookmark_name, created_on) VALUES (?, ?, ?)";
         try {
             // Validation
             // Check if the name is null or empty
-            if (bookmark.getName() == null) {
+            if (bookmark.getBookmarkName() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // Return 400 Bad Request
             }
 
             // Check if the bookmark already exists
-            String checkSql = "SELECT COUNT(*) FROM bookmark WHERE bookmark_id = ?";
+            String checkSql = "SELECT COUNT(*) FROM bookmarks WHERE bookmark_id = ?";
             Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, bookmark.getBookmarkId());
             if (count != null && count > 0) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).build(); // Return 409 Conflict
@@ -94,11 +94,11 @@ public class BookmarkRepo {
                 bookmark.setBookmarkId(UUID.randomUUID()); // Generate a new UUID
             }
             // Insert the new bookmark
-            if (bookmark.getCreatedOn() == null) {
-                bookmark.setCreatedOn(new Date()); // Set the current date if createdOn is null
+            if (bookmark.getDateCreated() == null) {
+                bookmark.setDateCreated(new Date()); // Set the current date if DateCreated is null
             }
             // Insert the bookmark into the database
-            jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getName(), bookmark.getCreatedOn());
+            jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getBookmarkName(), bookmark.getDateCreated());
             return ResponseEntity.status(HttpStatus.CREATED).build(); // Return 201 Created
         } catch (Exception e) {
             // Log the error (optional)

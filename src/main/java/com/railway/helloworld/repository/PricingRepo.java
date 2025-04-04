@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.railway.helloworld.model.Pricing;
+import com.railway.helloworld.model.PricingModel;
 
 @Repository
 public class PricingRepo {
@@ -24,18 +24,18 @@ public class PricingRepo {
     }
 
     // RowMapper to convert database rows to Pricing objects
-    private final RowMapper<Pricing> pricingRowMapper = (rs, rowNum) -> {
-        Pricing pricing = new Pricing();
-        pricing.setSku(rs.getString("sku"));
-        pricing.setUnitPrice(rs.getFloat("unit_price"));
+    private final RowMapper<PricingModel> pricingRowMapper = (rs, rowNum) -> {
+        PricingModel pricing = new PricingModel();
+        pricing.setProductId(rs.getInt("product_id"));
+        pricing.setNewPrice(rs.getFloat("new_price"));
         return pricing;
     };
 
     // Get all pricing data
-    public ResponseEntity<List<Pricing>> getAllPricing() {
+    public ResponseEntity<List<PricingModel>> getAllPricing() {
         String sql = "SELECT * FROM pricing";
         try {
-            List<Pricing> pricingList = jdbcTemplate.query(sql, pricingRowMapper);
+            List<PricingModel> pricingList = jdbcTemplate.query(sql, pricingRowMapper);
             return ResponseEntity.ok(pricingList); // Return 200 OK with the list of pricing data
         } catch (Exception e) {
             // Log the error (optional)
@@ -47,24 +47,24 @@ public class PricingRepo {
         }
     }
 
-    // Get pricing by SKU
-    public ResponseEntity<Optional<Pricing>> getPricingBySku(String sku) {
-        String sql = "SELECT * FROM pricing WHERE sku = ?";
-        String checkSql = "SELECT COUNT(*) FROM catalog WHERE sku = ?";
+    // Get pricing by productId
+    public ResponseEntity<Optional<PricingModel>> getPricingByProductId(Integer productId) {
+        String sql = "SELECT * FROM pricing WHERE product_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM catalog WHERE product_id = ?";
         try {
-            // Validate the SKU
-            if (sku == null || sku.isEmpty()) {
-                return ResponseEntity.badRequest().body(Optional.empty()); // Return 400 Bad Request if SKU is invalid
+            // Validate the productId
+            if (productId == null) {
+                return ResponseEntity.badRequest().body(Optional.empty()); // Return 400 Bad Request if productId is invalid
             }
 
-            // Check if SKU is valid
-            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, sku);
+            // Check if productId is valid
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, productId);
             if (count == null || count == 0) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Optional.empty()); // Return 404 Not Found if SKU does not exist
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Optional.empty()); // Return 404 Not Found if productId does not exist
             }
 
-            // Fetch pricing data by SKU
-            List<Pricing> pricingList = jdbcTemplate.query(sql, pricingRowMapper, sku);
+            // Fetch pricing data by productId
+            List<PricingModel> pricingList = jdbcTemplate.query(sql, pricingRowMapper, productId);
 
             if (pricingList.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Optional.empty()); // Return 404 Not Found if no pricing found
@@ -73,7 +73,7 @@ public class PricingRepo {
             return ResponseEntity.ok(Optional.of(pricingList.get(0))); // Return 200 OK with the pricing data
         } catch (Exception e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching pricing data by SKU: " + e.getMessage());
+            System.err.println("Error occurred while fetching pricing data by productId: " + e.getMessage());
             e.printStackTrace();
 
             // Return 500 Internal Server Error
@@ -81,26 +81,26 @@ public class PricingRepo {
         }
     }
 
-    // Update pricing by SKU
-    public ResponseEntity<String> updatePricingBySku(String sku, Float unitPrice) {
-        String sql = "UPDATE pricing SET unit_price = ? WHERE sku = ?";
-        String checkSql = "SELECT COUNT(*) FROM catalog WHERE sku = ?";
+    // Update pricing by ProductId
+    public ResponseEntity<String> updatePricingByProductId(Integer productId, Float unitPrice) {
+        String sql = "UPDATE pricing SET unit_price = ? WHERE product_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM catalog WHERE product_id = ?";
         try {
-            // Validate the SKU and unit price
-            if (sku == null || sku.isEmpty() || unitPrice == null) {
-                return ResponseEntity.badRequest().body("Invalid SKU or unit price"); // Return 400 Bad Request if invalid
+            // Validate the productId and unit price
+            if (productId == null || unitPrice == null) {
+                return ResponseEntity.badRequest().body("Invalid productId or unit price"); // Return 400 Bad Request if invalid
             }
 
-            // Check if SKU is valid
-            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, sku);
+            // Check if productId is valid
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, productId);
             if (count == null || count == 0) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("SKU not found"); // Return 404 Not Found if SKU does not exist
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("productId not found"); // Return 404 Not Found if productId does not exist
             }
 
-            // Update pricing data by SKU
-            int rowsAffected = jdbcTemplate.update(sql, unitPrice, sku);
+            // Update pricing data by productId
+            int rowsAffected = jdbcTemplate.update(sql, unitPrice, productId);
             if (rowsAffected == 0) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("SKU not found"); // Return 404 Not Found if SKU does not exist
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("productId not found"); // Return 404 Not Found if productId does not exist
             }
 
             return ResponseEntity.ok("Pricing updated successfully!"); // Return 200 OK if successful
