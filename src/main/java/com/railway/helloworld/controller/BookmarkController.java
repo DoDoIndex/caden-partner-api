@@ -1,6 +1,8 @@
 package com.railway.helloworld.controller;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +35,8 @@ public class BookmarkController {
 
     // Get bookmark by ID
     @GetMapping("/{bookmarkId}")
-    public BookmarksModel getBookmarkById(@PathVariable String bookmarkId) {
-        return bookmarkRepo.gettBookmarkById(bookmarkId).getBody().orElse(null);
+    public Optional<BookmarksModel> getBookmarkById(@PathVariable UUID bookmarkId) {
+        return bookmarkRepo.gettBookmarkById(bookmarkId).getBody();
     }
 
     // Create a new bookmark

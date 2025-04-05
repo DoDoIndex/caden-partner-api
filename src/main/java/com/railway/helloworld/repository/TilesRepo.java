@@ -2,10 +2,11 @@ package com.railway.helloworld.repository;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import com.railway.helloworld.model.TilesModel;
 public class TilesRepo {
 
     private final JdbcTemplate jdbcTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(TilesRepo.class);
 
     // Constructor injection for JdbcTemplate
     @Autowired
@@ -35,7 +37,7 @@ public class TilesRepo {
         tiles.setTexture(rs.getString("texture"));
         tiles.setMaterial(rs.getString("material"));
         tiles.setSize(rs.getString("size"));
-        tiles.setSizeAdvance(rs.getString("size_advance"));
+        tiles.setSizeAdvance(rs.getString("size_advanced"));
         tiles.setUnitOfMeasurement(rs.getString("unit_of_measurement"));
         tiles.setQuantityPerBox(rs.getInt("quantity_per_box"));
         tiles.setCoverage(rs.getFloat("coverage"));
@@ -50,8 +52,8 @@ public class TilesRepo {
     private Float parseFloat(String value) {
         try {
             return (value == null || value.isEmpty()) ? 0.0f : Float.parseFloat(value);
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid float value: " + value);
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            logger.error("Invalid float value: " + value);
             return 0.0f; // Default value
         }
     }
@@ -59,8 +61,8 @@ public class TilesRepo {
     private Integer parseInteger(String value) {
         try {
             return (value == null || value.isEmpty()) ? 0 : Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid integer value: " + value);
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            logger.error("Invalid integer value: " + value);
             return 0; // Default value
         }
     }
@@ -99,8 +101,8 @@ public class TilesRepo {
                 // Add the tiles object to the list
                 tilesList.add(tiles);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
 
         return tilesList;
@@ -118,59 +120,42 @@ public class TilesRepo {
             }
 
             // SQL to insert product data into the tiles table
-            String sqlTiles = "INSERT INTO tiles (collection, name, texture, material, size, size_advance, unit_of_measurement, quantity_per_box, coverage, unit_price, weight, color, categories, images) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                    + "collection = EXCLUDED.collection, "
-                    + "name = EXCLUDED.name, "
-                    + "texture = EXCLUDED.texture, "
-                    + "material = EXCLUDED.material, "
-                    + "size = EXCLUDED.size, "
-                    + "size_advance = EXCLUDED.size_advance, "
-                    + "unit_of_measurement = EXCLUDED.unit_of_measurement, "
-                    + "quantity_per_box = EXCLUDED.quantity_per_box, "
-                    + "coverage = EXCLUDED.coverage, "
-                    + "unit_price = EXCLUDED.unit_price, "
-                    + "weight = EXCLUDED.weight, "
-                    + "color = EXCLUDED.color, "
-                    + "categories = EXCLUDED.categories, "
-                    + "images = EXCLUDED.images";
+            String sqlTiles = "INSERT INTO tiles (collection, name, texture, material, size, size_advanced, unit_of_measurement, quantity_per_box, coverage, unit_price, weight, color, categories, images) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING product_id";
 
             // SQL to insert/update pricing data
-            String sqlPricing = "INSERT INTO pricing (product_id, unit_price) VALUES (?, ?) "
-                    + "ON CONFLICT (product_id) DO UPDATE SET unit_price = EXCLUDED.unit_price";
+            String sqlPricing = "INSERT INTO pricing (product_id, new_price) VALUES (?, ?)";
 
             // Loop through tiles and perform inserts
             for (TilesModel tile : tilesList) {
-                // Insert or update tile info
-                jdbcTemplate.update(sqlTiles,
-                        tile.getProductId(),
-                        tile.getCollection(),
-                        tile.getName(),
-                        tile.getTexture(),
-                        tile.getMaterial(),
-                        tile.getSize(),
-                        tile.getSizeAdvance(),
-                        tile.getUnitOfMeasurement(),
-                        tile.getQuantityPerBox(),
-                        tile.getCoverage(),
-                        tile.getUnitPrice(),
-                        tile.getWeight(),
-                        tile.getColor(),
-                        tile.getCategories(),
-                        tile.getImages()
-                );
+                // Capture the product_id from the tiles table after insert or update
+                Integer productId = jdbcTemplate.queryForObject(sqlTiles, new Object[]{
+                    tile.getCollection(),
+                    tile.getName(),
+                    tile.getTexture(),
+                    tile.getMaterial(),
+                    tile.getSize(),
+                    tile.getSizeAdvance(),
+                    tile.getUnitOfMeasurement(),
+                    tile.getQuantityPerBox(),
+                    tile.getCoverage(),
+                    tile.getUnitPrice(),
+                    tile.getWeight(),
+                    tile.getColor(),
+                    tile.getCategories(),
+                    tile.getImages()
+                }, Integer.class);
 
                 // Insert or update pricing with 30% markup
                 jdbcTemplate.update(sqlPricing,
-                        tile.getProductId(),
+                        productId,
                         tile.getUnitPrice() * 1.3f
                 );
             }
 
             return ResponseEntity.status(HttpStatus.CREATED).body("Catalog created successfully!");
-        } catch (Exception e) {
-            System.err.println("Error occurred while creating catalog: " + e.getMessage());
-            e.printStackTrace();
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            logger.error("Error occurred while creating catalog: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while creating catalog: " + e.getMessage());
         }
     }
@@ -179,12 +164,15 @@ public class TilesRepo {
     public ResponseEntity<List<TilesModel>> getAllProducts() {
         String sql = "SELECT * FROM tiles";
         try {
-            List<TilesModel> tilesModel = jdbcTemplate.query(sql, tilesRowMapper);
-            return ResponseEntity.ok(tilesModel); // Return 200 OK with the list of tiles
-        } catch (Exception e) {
+            // Execute the query to fetch all tiles
+            List<TilesModel> tiles = jdbcTemplate.query(sql, tilesRowMapper);
+            if (tiles.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Return 404 Not Found
+            }
+            return ResponseEntity.ok(tiles); // Return 200 OK with the list of tiles
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching tiles: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching tiles: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(500).body(null);
@@ -205,12 +193,11 @@ public class TilesRepo {
             if (tiles.isEmpty()) {
                 return ResponseEntity.status(404).body(null); // Return 404 Not Found
             } else {
-                return ResponseEntity.ok(tiles.get(0)); // Return 200 OK with the tilesModel
+                return ResponseEntity.ok(tiles.get(0)); // Return 200 OK with the tiles
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching tile by ID: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching tile by ID: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(500).body(null);

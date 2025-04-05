@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import com.railway.helloworld.model.TilesModel;
 public class BookmarkItemsRepo {
 
     private final JdbcTemplate jdbcTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(BookmarkItemsRepo.class);
 
     // Constructor injection for JdbcTemplate
     @Autowired
@@ -26,24 +29,24 @@ public class BookmarkItemsRepo {
     }
 
     // RowMapper to convert database rows to BookmarkItemsRepo objects
-    private final RowMapper<TilesModel> tilesModelRowMapper = (rs, rowNum) -> {
-        TilesModel tilesModel = new TilesModel();
-        tilesModel.setProductId(rs.getInt("product_id"));
-        tilesModel.setCollection(rs.getString("collection"));
-        tilesModel.setName(rs.getString("name"));
-        tilesModel.setTexture(rs.getString("texture"));
-        tilesModel.setMaterial(rs.getString("material"));
-        tilesModel.setSize(rs.getString("size"));
-        tilesModel.setSizeAdvance(rs.getString("size_advance"));
-        tilesModel.setUnitOfMeasurement(rs.getString("unit_of_measurement"));
-        tilesModel.setQuantityPerBox(rs.getInt("quantity_per_box"));
-        tilesModel.setCoverage(rs.getFloat("coverage"));
-        tilesModel.setUnitPrice(rs.getFloat("unit_price"));
-        tilesModel.setWeight(rs.getFloat("weight"));
-        tilesModel.setColor(rs.getString("color"));
-        tilesModel.setCategories(rs.getString("categories"));
-        tilesModel.setImages(rs.getString("images"));
-        return tilesModel;
+    private final RowMapper<TilesModel> tilesRowMapper = (rs, rowNum) -> {
+        TilesModel tiles = new TilesModel();
+        tiles.setProductId(rs.getInt("product_id"));
+        tiles.setCollection(rs.getString("collection"));
+        tiles.setName(rs.getString("name"));
+        tiles.setTexture(rs.getString("texture"));
+        tiles.setMaterial(rs.getString("material"));
+        tiles.setSize(rs.getString("size"));
+        tiles.setSizeAdvance(rs.getString("size_advance"));
+        tiles.setUnitOfMeasurement(rs.getString("unit_of_measurement"));
+        tiles.setQuantityPerBox(rs.getInt("quantity_per_box"));
+        tiles.setCoverage(rs.getFloat("coverage"));
+        tiles.setUnitPrice(rs.getFloat("unit_price"));
+        tiles.setWeight(rs.getFloat("weight"));
+        tiles.setColor(rs.getString("color"));
+        tiles.setCategories(rs.getString("categories"));
+        tiles.setImages(rs.getString("images"));
+        return tiles;
     };
 
     // Get all products in a specific bookmark
@@ -65,16 +68,15 @@ public class BookmarkItemsRepo {
             }
 
             // Fetch products associated with the bookmark
-            List<TilesModel> products = jdbcTemplate.query(sql, tilesModelRowMapper, bookmarkId);
+            List<TilesModel> products = jdbcTemplate.query(sql, tilesRowMapper, bookmarkId);
             if (products.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Return 404 Not Found if no products found
             }
             return ResponseEntity.ok(products); // Return 200 OK with the list of products
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching products in bookmark_items: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching products in bookmark_items: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -97,7 +99,7 @@ public class BookmarkItemsRepo {
         }
 
         // Check if products exist in the catalog
-        String checkProductSql = "SELECT product_id FROM catalog WHERE product_id IN ("
+        String checkProductSql = "SELECT product_id FROM tiles WHERE product_id IN ("
                 + productIds.stream().map(id -> "?").collect(Collectors.joining(",")) + ")";
 
         List<Integer> validProductIds = jdbcTemplate.query(checkProductSql,
@@ -125,9 +127,8 @@ public class BookmarkItemsRepo {
         try {
             jdbcTemplate.update(insertSql, params.toArray());
             return ResponseEntity.status(HttpStatus.CREATED).body("Products added to bookmark successfully!"); // Return 201 Created
-        } catch (Exception e) {
-            System.err.println("Error occurred while adding products to bookmark: " + e.getMessage());
-            e.printStackTrace();
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            logger.error("Error occurred while adding products to bookmark: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred: " + e.getMessage()); // Return 500 Internal Server Error
         }
     }
@@ -177,9 +178,8 @@ public class BookmarkItemsRepo {
             }
 
             return ResponseEntity.ok("Products removed from bookmark successfully!"); // Return 200 OK
-        } catch (Exception e) {
-            System.err.println("Error occurred while removing products from bookmark: " + e.getMessage());
-            e.printStackTrace();
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            logger.error("Error occurred while removing products from bookmark: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred: " + e.getMessage()); // Return 500 Internal Server Error
         }
     }

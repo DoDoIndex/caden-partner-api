@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import com.railway.helloworld.model.BookmarksModel;
 public class BookmarksRepo {
 
     private final JdbcTemplate jdbcTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(BookmarksRepo.class);
 
     // Constructor injection for JdbcTemplate
     @Autowired
@@ -40,10 +43,9 @@ public class BookmarksRepo {
         try {
             List<BookmarksModel> bookmarks = jdbcTemplate.query(sql, bookmarksRowMapper);
             return ResponseEntity.ok(bookmarks); // Return 200 OK with the list of bookmarks
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching bookmarks: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching bookmarks: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -53,7 +55,7 @@ public class BookmarksRepo {
     // Find bookmark by ID 
     // Sử dụng Optional vì có thể không tìm thấy bookmark với ID đó
     // Optional giúp tránh NullPointerException
-    public ResponseEntity<Optional<BookmarksModel>> gettBookmarkById(String bookmarkId) {
+    public ResponseEntity<Optional<BookmarksModel>> gettBookmarkById(UUID bookmarkId) {
         String sql = "SELECT * FROM bookmarks WHERE bookmark_id = ?";
         try {
             List<BookmarksModel> bookmarks = jdbcTemplate.query(sql, bookmarksRowMapper, bookmarkId);
@@ -62,10 +64,9 @@ public class BookmarksRepo {
             } else {
                 return ResponseEntity.ok(Optional.of(bookmarks.get(0))); // Return 200 OK with the bookmark
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching bookmark by ID: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching bookmark by ID: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -100,10 +101,9 @@ public class BookmarksRepo {
             // Insert the bookmark into the database
             jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getBookmarkName(), bookmark.getDateCreated());
             return ResponseEntity.status(HttpStatus.CREATED).build(); // Return 201 Created
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while creating bookmark: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while creating bookmark: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
