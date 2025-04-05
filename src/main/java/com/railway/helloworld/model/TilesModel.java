@@ -13,6 +13,7 @@ public class TilesModel {
     private Integer quantityPerBox;
     private Float coverage;
     private Float unitPrice;
+    private Float myUnitPrice;
     private Float weight;
     private String color;
     private String categories;
@@ -104,6 +105,14 @@ public class TilesModel {
 
     public void setUnitPrice(Float unitPrice) {
         this.unitPrice = unitPrice;
+    }
+
+    public Float getMyUnitPrice() {
+        return myUnitPrice;
+    }
+
+    public void setMyUnitPrice(Float myUnitPrice) {
+        this.myUnitPrice = myUnitPrice;
     }
 
     public Float getWeight() {
