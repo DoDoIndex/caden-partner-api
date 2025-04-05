@@ -3,6 +3,8 @@ package com.railway.helloworld.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import com.railway.helloworld.model.PricingModel;
 public class PricingRepo {
 
     private final JdbcTemplate jdbcTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(PricingRepo.class);
 
     // Constructor injection for JdbcTemplate
     @Autowired
@@ -37,10 +40,9 @@ public class PricingRepo {
         try {
             List<PricingModel> pricingList = jdbcTemplate.query(sql, pricingRowMapper);
             return ResponseEntity.ok(pricingList); // Return 200 OK with the list of pricing data
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching pricing data: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching pricing data: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -50,7 +52,7 @@ public class PricingRepo {
     // Get pricing by productId
     public ResponseEntity<Optional<PricingModel>> getPricingByProductId(Integer productId) {
         String sql = "SELECT * FROM pricing WHERE product_id = ?";
-        String checkSql = "SELECT COUNT(*) FROM catalog WHERE product_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM tiles WHERE product_id = ?";
         try {
             // Validate the productId
             if (productId == null) {
@@ -71,10 +73,9 @@ public class PricingRepo {
             }
 
             return ResponseEntity.ok(Optional.of(pricingList.get(0))); // Return 200 OK with the pricing data
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while fetching pricing data by productId: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while fetching pricing data by productId: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -104,10 +105,9 @@ public class PricingRepo {
             }
 
             return ResponseEntity.ok("Pricing updated successfully!"); // Return 200 OK if successful
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
-            System.err.println("Error occurred while updating pricing data: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error occurred while updating pricing data: " + e.getMessage());
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while updating pricing data");
