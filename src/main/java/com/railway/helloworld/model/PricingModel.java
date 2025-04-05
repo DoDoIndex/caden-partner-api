@@ -1,9 +1,9 @@
 package com.railway.helloworld.model;
 
-public class Pricing {
+public class PricingModel {
 
-    private int productId;
-    private Double unitPrice;
+    private Integer productId;
+    private Float newPrice;
 
     // Getters and Setters
     public Integer getProductId() {
@@ -14,11 +14,11 @@ public class Pricing {
         this.productId = productId;
     }
 
-    public Double getUnitPrice() {
-        return unitPrice;
+    public Float getNewPrice() {
+        return newPrice;
     }
 
-    public void setUnitPrice(Double unitPrice) {
-        this.unitPrice = unitPrice;
+    public void setNewPrice(Float newPrice) {
+        this.newPrice = newPrice;
     }
 }
