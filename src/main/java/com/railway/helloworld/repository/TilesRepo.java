@@ -42,6 +42,7 @@ public class TilesRepo {
         tiles.setQuantityPerBox(rs.getInt("quantity_per_box"));
         tiles.setCoverage(rs.getFloat("coverage"));
         tiles.setUnitPrice(rs.getFloat("unit_price"));
+        tiles.setMyUnitPrice(rs.getFloat("my_unit_price"));
         tiles.setWeight(rs.getFloat("weight"));
         tiles.setColor(rs.getString("color"));
         tiles.setCategories(rs.getString("categories"));
@@ -49,21 +50,24 @@ public class TilesRepo {
         return tiles;
     };
 
-    private Float parseFloat(String value) {
+    private Integer parseInteger(String value) {
         try {
-            return (value == null || value.isEmpty()) ? 0.0f : Float.parseFloat(value);
-        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
-            logger.error("Invalid float value: " + value);
-            return 0.0f; // Default value
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            logger.error("Error parsing integer: " + e.getMessage());
+            return null;
         }
     }
 
-    private Integer parseInteger(String value) {
+    private Float parseFloat(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return 0.0f; // Default value for empty or null strings
+        }
         try {
-            return (value == null || value.isEmpty()) ? 0 : Integer.parseInt(value);
-        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
-            logger.error("Invalid integer value: " + value);
-            return 0; // Default value
+            return Float.parseFloat(value.trim());
+        } catch (NumberFormatException e) {
+            logger.error("Error parsing float: " + e.getMessage());
+            return 0.0f; // Default value in case of parse error
         }
     }
 
@@ -90,10 +94,11 @@ public class TilesRepo {
                 tiles.setSize(columns[9]);
                 tiles.setSizeAdvance(columns[10]);
                 tiles.setUnitOfMeasurement(columns[3]);
-                tiles.setQuantityPerBox(parseInteger(columns[4])); // Use helper method
-                tiles.setCoverage(parseFloat(columns[5])); // Use helper method
-                tiles.setUnitPrice(parseFloat(columns[6])); // Use helper method
-                tiles.setWeight(parseFloat(columns[13])); // Use helper method
+                tiles.setQuantityPerBox(parseInteger(columns[4]));
+                tiles.setCoverage(parseFloat(columns[5]));
+                tiles.setUnitPrice(parseFloat(columns[6]));
+                tiles.setMyUnitPrice(parseFloat(columns[6]) * 1.3f); // Assuming my_unit_price is 30% more than unit_price
+                tiles.setWeight(parseFloat(columns[13]));
                 tiles.setColor(columns[14]);
                 tiles.setCategories(columns[16]);
                 tiles.setImages(columns[18]);
@@ -120,38 +125,41 @@ public class TilesRepo {
             }
 
             // SQL to insert product data into the tiles table
-            String sqlTiles = "INSERT INTO tiles (collection, name, texture, material, size, size_advanced, unit_of_measurement, quantity_per_box, coverage, unit_price, weight, color, categories, images) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING product_id";
-
-            // SQL to insert/update pricing data
-            String sqlPricing = "INSERT INTO pricing (product_id, new_price) VALUES (?, ?)";
+            StringBuilder sqlTiles = new StringBuilder(
+                    "INSERT INTO tiles (collection, name, texture, material, size, size_advanced, unit_of_measurement, quantity_per_box, coverage, unit_price, my_unit_price, weight, color, categories, images) VALUES "
+            );
+            List<Object> params = new ArrayList<>();
 
             // Loop through tiles and perform inserts
-            for (TilesModel tile : tilesList) {
-                // Capture the product_id from the tiles table after insert or update
-                Integer productId = jdbcTemplate.queryForObject(sqlTiles, new Object[]{
-                    tile.getCollection(),
-                    tile.getName(),
-                    tile.getTexture(),
-                    tile.getMaterial(),
-                    tile.getSize(),
-                    tile.getSizeAdvance(),
-                    tile.getUnitOfMeasurement(),
-                    tile.getQuantityPerBox(),
-                    tile.getCoverage(),
-                    tile.getUnitPrice(),
-                    tile.getWeight(),
-                    tile.getColor(),
-                    tile.getCategories(),
-                    tile.getImages()
-                }, Integer.class);
+            for (int i = 0; i < tilesList.size(); i++) {
+                sqlTiles.append("(");
+                sqlTiles.append("?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?");
+                sqlTiles.append(")");
 
-                // Insert or update pricing with 30% markup
-                jdbcTemplate.update(sqlPricing,
-                        productId,
-                        tile.getUnitPrice() * 1.3f
-                );
+                if (i < tilesList.size() - 1) {
+                    sqlTiles.append(", ");
+                }
+
+                TilesModel tile = tilesList.get(i);
+                params.add(tile.getCollection());
+                params.add(tile.getName());
+                params.add(tile.getTexture());
+                params.add(tile.getMaterial());
+                params.add(tile.getSize());
+                params.add(tile.getSizeAdvance());
+                params.add(tile.getUnitOfMeasurement());
+                params.add(tile.getQuantityPerBox());
+                params.add(tile.getCoverage());
+                params.add(tile.getUnitPrice());
+                params.add(tile.getMyUnitPrice());
+                params.add(tile.getWeight());
+                params.add(tile.getColor());
+                params.add(tile.getCategories());
+                params.add(tile.getImages());
             }
+
+            // Execute the SQL statement to insert data into the tiles table
+            jdbcTemplate.update(sqlTiles.toString(), params.toArray());
 
             return ResponseEntity.status(HttpStatus.CREATED).body("Catalog created successfully!");
         } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
@@ -201,6 +209,55 @@ public class TilesRepo {
 
             // Return 500 Internal Server Error
             return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    // Update all my_unit_price
+    public ResponseEntity<String> updateMyUnitPrice(Float unitPrice) {
+        String sql = "UPDATE tiles SET my_unit_price = ?";
+        try {
+            // Validate the unit price
+            if (unitPrice == null) {
+                return ResponseEntity.badRequest().body("Invalid unit price"); // Return 400 Bad Request if invalid
+            }
+
+            // Update all my_unit_price in the tiles table
+            int rowsAffected = jdbcTemplate.update(sql, unitPrice);
+            if (rowsAffected == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No products found to update"); // Return 404 Not Found if no products exist
+            }
+
+            return ResponseEntity.ok("All my_unit_price updated successfully!"); // Return 200 OK if successful
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            // Log the error (optional)
+            logger.error("Error occurred while updating my_unit_price: " + e.getMessage());
+
+            // Return 500 Internal Server Error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while updating my_unit_price");
+        }
+    }
+
+    // Update my_unit_price by ProductId
+    public ResponseEntity<String> updateMyUnitPriceByProductId(Integer productId, Float unitPrice) {
+        String sql = "UPDATE pricing SET unit_price = ? WHERE product_id = ?";
+        try {
+            // Validate the productId and unit price
+            if (productId == null || unitPrice == null) {
+                return ResponseEntity.badRequest().body("Invalid productId or unit price"); // Return 400 Bad Request if invalid
+            }
+
+            // Update my_unit_price by productId in the pricing table
+            int rowsAffected = jdbcTemplate.update(sql, unitPrice, productId);
+            if (rowsAffected == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No products found to update"); // Return 404 Not Found if no products exist
+            }
+            return ResponseEntity.ok("Product with ID " + productId + " updated successfully!"); // Return 200 OK if successful
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            // Log the error (optional)
+            logger.error("Error occurred while updating pricing data: " + e.getMessage());
+
+            // Return 500 Internal Server Error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while updating pricing data");
         }
     }
 
