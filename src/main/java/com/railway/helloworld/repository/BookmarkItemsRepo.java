@@ -42,6 +42,7 @@ public class BookmarkItemsRepo {
         tiles.setQuantityPerBox(rs.getInt("quantity_per_box"));
         tiles.setCoverage(rs.getFloat("coverage"));
         tiles.setUnitPrice(rs.getFloat("unit_price"));
+        tiles.setMyUnitPrice(rs.getFloat("my_unit_price"));
         tiles.setWeight(rs.getFloat("weight"));
         tiles.setColor(rs.getString("color"));
         tiles.setCategories(rs.getString("categories"));
