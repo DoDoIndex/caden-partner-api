@@ -92,11 +92,26 @@ public class BookmarkItemsRepo {
         }
 
         // Check if the bookmark group exists
-        String checkBookmarkSql = "SELECT COUNT(*) FROM bookmark_group WHERE bookmark_id = ?";
+        String checkBookmarkSql = "SELECT COUNT(*) FROM bookmarks WHERE bookmark_id = ?";
         Integer bookmarkCount = jdbcTemplate.queryForObject(checkBookmarkSql, Integer.class, bookmarkId);
 
         if (bookmarkCount == null || bookmarkCount == 0) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Bookmark not found"); // Return 404 Not Found
+        }
+
+        // Check if the products already exist in the bookmark
+        String checkExistingSql = "SELECT COUNT(*) FROM bookmark_items WHERE bookmark_id = ? AND product_id IN ("
+                + productIds.stream().map(id -> "?").collect(Collectors.joining(",")) + ")";
+        List<Object> checkParams = new ArrayList<>();
+        checkParams.add(bookmarkId);
+        checkParams.addAll(productIds);
+
+        Integer existingCount = jdbcTemplate.queryForObject(
+                checkExistingSql, Integer.class, checkParams.toArray()
+        );
+
+        if (existingCount != null && existingCount > 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Products already exist in the bookmark"); // Return 409 Conflict
         }
 
         // Check if products exist in the catalog
