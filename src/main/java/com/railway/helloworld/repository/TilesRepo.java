@@ -159,8 +159,10 @@ public class TilesRepo {
             }
 
             // Execute the SQL statement to insert data into the tiles table
-            jdbcTemplate.update(sqlTiles.toString(), params.toArray());
-
+            Integer rows = jdbcTemplate.update(sqlTiles.toString(), params.toArray());
+            if (rows == 0) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to insert data into the database.");
+            }
             return ResponseEntity.status(HttpStatus.CREATED).body("Catalog created successfully!");
         } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             logger.error("Error occurred while creating catalog: " + e.getMessage());
@@ -213,16 +215,16 @@ public class TilesRepo {
     }
 
     // Update all my_unit_price
-    public ResponseEntity<String> updateMyUnitPrice(Float unitPrice) {
+    public ResponseEntity<String> updateMyUnitPrice(Float myUnitPrice) {
         String sql = "UPDATE tiles SET my_unit_price = ?";
         try {
             // Validate the unit price
-            if (unitPrice == null) {
+            if (myUnitPrice == null) {
                 return ResponseEntity.badRequest().body("Invalid unit price"); // Return 400 Bad Request if invalid
             }
 
             // Update all my_unit_price in the tiles table
-            int rowsAffected = jdbcTemplate.update(sql, unitPrice);
+            int rowsAffected = jdbcTemplate.update(sql, myUnitPrice);
             if (rowsAffected == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No products found to update"); // Return 404 Not Found if no products exist
             }
@@ -238,16 +240,16 @@ public class TilesRepo {
     }
 
     // Update my_unit_price by ProductId
-    public ResponseEntity<String> updateMyUnitPriceByProductId(Integer productId, Float unitPrice) {
-        String sql = "UPDATE pricing SET unit_price = ? WHERE product_id = ?";
+    public ResponseEntity<String> updateMyUnitPriceByProductId(Integer productId, Float myUnitPrice) {
+        String sql = "UPDATE tiles SET my_unit_price = ? WHERE product_id = ?";
         try {
             // Validate the productId and unit price
-            if (productId == null || unitPrice == null) {
+            if (productId == null || myUnitPrice == null) {
                 return ResponseEntity.badRequest().body("Invalid productId or unit price"); // Return 400 Bad Request if invalid
             }
 
             // Update my_unit_price by productId in the pricing table
-            int rowsAffected = jdbcTemplate.update(sql, unitPrice, productId);
+            int rowsAffected = jdbcTemplate.update(sql, myUnitPrice, productId);
             if (rowsAffected == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No products found to update"); // Return 404 Not Found if no products exist
             }

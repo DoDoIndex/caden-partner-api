@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,19 +30,19 @@ public class BookmarkController {
 
     // Get all bookmarks
     @GetMapping
-    public List<BookmarksModel> getAllBookmarks() {
-        return bookmarkRepo.getAllBookmarks().getBody();
+    public ResponseEntity<List<BookmarksModel>> getAllBookmarks() {
+        return bookmarkRepo.getAllBookmarks();
     }
 
     // Get bookmark by ID
     @GetMapping("/{bookmarkId}")
-    public Optional<BookmarksModel> getBookmarkById(@PathVariable UUID bookmarkId) {
-        return bookmarkRepo.gettBookmarkById(bookmarkId).getBody();
+    public ResponseEntity<Optional<BookmarksModel>> getBookmarkById(@PathVariable UUID bookmarkId) {
+        return bookmarkRepo.gettBookmarkById(bookmarkId);
     }
 
     // Create a new bookmark
     @PostMapping("/create")
-    public void createBookmark(@RequestBody BookmarksModel bookmark) {
-        bookmarkRepo.createBookmark(bookmark);
+    public ResponseEntity<String> createBookmark(@RequestBody BookmarksModel bookmark) {
+        return bookmarkRepo.createBookmark(bookmark);
     }
 }

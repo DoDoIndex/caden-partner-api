@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,13 +35,13 @@ public class BookmarkItemsController {
 
     // Add tiles to a bookmark
     @PostMapping("/{bookmarkId}/create")
-    public void addTilesTobookmark(@PathVariable UUID bookmarkItemsId, @RequestBody List<Integer> productId) {
-        bookmarkItemsRepo.addTilesToBookmark(bookmarkItemsId, productId);
+    public ResponseEntity<String> addTilesTobookmark(@PathVariable UUID bookmarkId, @RequestBody List<Integer> productId) {
+        return bookmarkItemsRepo.addTilesToBookmark(bookmarkId, productId);
     }
 
     // Remove tiles from a bookmark
-    @PostMapping("/{bookmarkItemsId}/remove")
-    public void removeTilesFromBookmark(@PathVariable UUID bookmarkItemsId, @RequestBody List<Integer> productId) {
-        bookmarkItemsRepo.removeTilesFromBookmark(bookmarkItemsId, productId);
+    @PostMapping("/{bookmarkId}/remove")
+    public ResponseEntity<String> removeTilesFromBookmark(@PathVariable UUID bookmarkId, @RequestBody List<Integer> productId) {
+        return bookmarkItemsRepo.removeTilesFromBookmark(bookmarkId, productId);
     }
 }
