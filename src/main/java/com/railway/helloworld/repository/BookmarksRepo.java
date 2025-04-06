@@ -33,7 +33,7 @@ public class BookmarksRepo {
         BookmarksModel bookmark = new BookmarksModel();
         bookmark.setBookmarkId(rs.getObject("bookmark_id", UUID.class));
         bookmark.setBookmarkName(rs.getString("bookmark_name"));
-        bookmark.setDateCreated(rs.getDate("created_on"));
+        bookmark.setDateCreated(rs.getDate("date_created"));
         return bookmark;
     };
 
@@ -75,19 +75,19 @@ public class BookmarksRepo {
 
     // Create a new bookmark group
     public ResponseEntity<String> createBookmark(BookmarksModel bookmark) {
-        String sql = "INSERT INTO bookmarks (bookmark_id, bookmark_name, created_on) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO bookmarks (bookmark_id, bookmark_name, date_created) VALUES (?, ?, ?)";
         try {
             // Validation
             // Check if the name is null or empty
-            if (bookmark.getBookmarkName() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // Return 400 Bad Request
+            if (bookmark.getBookmarkName() == null || bookmark.getBookmarkName().isEmpty()) {
+                return ResponseEntity.badRequest().body("Bookmark name cannot be null or empty"); // Return 400 Bad Request
             }
 
             // Check if the bookmark already exists
             String checkSql = "SELECT COUNT(*) FROM bookmarks WHERE bookmark_id = ?";
             Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, bookmark.getBookmarkId());
             if (count != null && count > 0) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build(); // Return 409 Conflict
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Bookmark already exists"); // Return 409 Conflict
             }
 
             // Generate a new UUID if bookmarkId is null
@@ -99,14 +99,17 @@ public class BookmarksRepo {
                 bookmark.setDateCreated(new Date()); // Set the current date if DateCreated is null
             }
             // Insert the bookmark into the database
-            jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getBookmarkName(), bookmark.getDateCreated());
+            Integer rows = jdbcTemplate.update(sql, bookmark.getBookmarkId(), bookmark.getBookmarkName(), bookmark.getDateCreated());
+            if (rows == 0) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create bookmark"); // Return 500 Internal Server Error
+            }
             return ResponseEntity.status(HttpStatus.CREATED).build(); // Return 201 Created
         } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
             // Log the error (optional)
             logger.error("Error occurred while creating bookmark: " + e.getMessage());
 
             // Return 500 Internal Server Error
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while creating bookmark"); // Return 500 Internal Server Error
         }
     }
 }
