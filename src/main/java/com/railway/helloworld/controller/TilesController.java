@@ -39,6 +39,11 @@ public class TilesController {
         return tilesRepo.getAllProducts();
     }
 
+    @GetMapping("/catalog/products/{productId}")
+    public ResponseEntity<TilesModel> getProductDetails(@PathVariable Integer productId) {
+        return tilesRepo.getProductDetails(productId);
+    }
+
     // Update my_unit_price by productId
     @PostMapping("/pricing/update/{productId}")
     public ResponseEntity<String> updatePricingByProductId(@PathVariable Integer productId, @RequestBody Map<String, Object> body) {
