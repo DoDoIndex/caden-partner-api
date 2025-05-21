@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.railway.helloworld.model.TilesModel;
@@ -40,22 +39,14 @@ public class TilesController {
         return tilesRepo.getAllProducts();
     }
 
-    // Get product details by productId 
-    @GetMapping("/catalog/product/details") // ?productId=xxx
-    public ResponseEntity<TilesModel> getProductDetails(@RequestParam Integer productId) {
-        return tilesRepo.getProductDetails(productId);
-    }
-
-    // Update all my_unit_price
-    @PostMapping("/pricing/update")
-    public ResponseEntity<String> updateAllPricing(@RequestBody Float myUnitPrice) {
-        return tilesRepo.updateMyUnitPrice(myUnitPrice);
-    }
-
     // Update my_unit_price by productId
     @PostMapping("/pricing/update/{productId}")
-    public ResponseEntity<String> updatePricingByProductId(@PathVariable Integer productId, @RequestBody Map<String, Float> body) {
-        Float myUnitPrice = body.get("myUnitPrice");
-        return tilesRepo.updateMyUnitPriceByProductId(productId, myUnitPrice);
+    public ResponseEntity<String> updatePricingByProductId(@PathVariable Integer productId, @RequestBody Map<String, Object> body) {
+        Double partnerPrice = null;
+        Object value = body.get("partnerPrice");
+        if (value instanceof Number) {
+            partnerPrice = ((Number) value).doubleValue();
+        }
+        return tilesRepo.updatePartnerPriceByProductId(productId, partnerPrice);
     }
 }
