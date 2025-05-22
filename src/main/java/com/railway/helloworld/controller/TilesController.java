@@ -1,9 +1,12 @@
 package com.railway.helloworld.controller;
 
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +68,10 @@ public class TilesController {
                 if (productId == null || unitPrice == null) {
                     continue;
                 }
-                double partnerPrice = unitPrice * 1.3;
                 String productDetailsJson = mapper.writeValueAsString(productDetails);
-                String sql = "INSERT INTO tiles (product_id, product_details, partner_price) VALUES (?, ?::json, ?) "
-                        + "ON CONFLICT (product_id) DO UPDATE SET product_details = EXCLUDED.product_details, partner_price = EXCLUDED.partner_price";
-                int rows = jdbcTemplate.update(sql, productId, productDetailsJson, partnerPrice);
+                String sql = "INSERT INTO tiles (product_id, product_details) VALUES (?, ?::json) "
+                        + "ON CONFLICT (product_id) DO UPDATE SET product_details = EXCLUDED.product_details";
+                int rows = jdbcTemplate.update(sql, productId, productDetailsJson);
                 if (rows > 0) {
                     inserted++;
                 }
@@ -87,12 +89,11 @@ public class TilesController {
     // Get all products in the catalog
     @GetMapping("/catalog")
     public ResponseEntity<List<TilesModel>> getAllProducts() {
-        String sql = "SELECT product_id, product_details, partner_price FROM tiles";
+        String sql = "SELECT product_id, product_details FROM tiles";
         try {
             List<TilesModel> products = jdbcTemplate.query(sql, (rs, rowNum) -> {
                 TilesModel tile = new TilesModel();
                 tile.setProductId(rs.getInt("product_id"));
-                tile.setPartnerPrice(rs.getDouble("partner_price"));
                 String detailsJson = rs.getString("product_details");
                 try {
                     ObjectMapper mapper = new ObjectMapper();
@@ -117,7 +118,7 @@ public class TilesController {
 
     @GetMapping("/catalog/products/{productId}")
     public ResponseEntity<TilesModel> getProductDetails(@PathVariable Integer productId) {
-        String sql = "SELECT product_id, product_details, partner_price FROM tiles WHERE product_id = ?";
+        String sql = "SELECT product_id, product_details FROM tiles WHERE product_id = ?";
         try {
             if (productId == null) {
                 return ResponseEntity.badRequest().body(null);
@@ -125,7 +126,6 @@ public class TilesController {
             List<TilesModel> tiles = jdbcTemplate.query(sql, (rs, rowNum) -> {
                 TilesModel tile = new TilesModel();
                 tile.setProductId(rs.getInt("product_id"));
-                tile.setPartnerPrice(rs.getDouble("partner_price"));
                 String detailsJson = rs.getString("product_details");
                 try {
                     ObjectMapper mapper = new ObjectMapper();
@@ -175,6 +175,39 @@ public class TilesController {
         } catch (Exception e) {
             logger.error("Error occurred while updating partner price: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred while updating partner price");
+        }
+    }
+
+    @GetMapping("/catalog/images")
+    public ResponseEntity<List<String>> getAllImages() {
+        String sql = "SELECT product_details FROM tiles";
+        try {
+            Set<String> allImages = new HashSet<>(); // Using Set to avoid duplicates
+            List<Map<String, Object>> results = jdbcTemplate.query(sql, (rs, rowNum) -> {
+                String detailsJson = rs.getString("product_details");
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    return mapper.readValue(detailsJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                    });
+                } catch (Exception ex) {
+                    logger.error("Error parsing product_details JSON: " + ex.getMessage());
+                    return null;
+                }
+            });
+
+            for (Map<String, Object> details : results) {
+                if (details != null && details.containsKey("Photo Hover")) {
+                    String photoHover = (String) details.get("Photo Hover");
+                    if (photoHover != null && !photoHover.trim().isEmpty()) {
+                        allImages.add(photoHover.trim());
+                    }
+                }
+            }
+
+            return ResponseEntity.ok(new ArrayList<>(allImages));
+        } catch (Exception e) {
+            logger.error("Error occurred while fetching images: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

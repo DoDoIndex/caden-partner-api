@@ -6,7 +6,6 @@ public class TilesModel {
 
     private Integer productId;
     private Map<String, Object> productDetails;
-    private Double partnerPrice;
 
     public Integer getProductId() {
         return productId;
@@ -22,13 +21,5 @@ public class TilesModel {
 
     public void setProductDetails(Map<String, Object> productDetails) {
         this.productDetails = productDetails;
-    }
-
-    public Double getPartnerPrice() {
-        return partnerPrice;
-    }
-
-    public void setPartnerPrice(Double partnerPrice) {
-        this.partnerPrice = partnerPrice;
     }
 }
