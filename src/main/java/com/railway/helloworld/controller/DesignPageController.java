@@ -83,7 +83,9 @@ public class DesignPageController {
                 page.setCompanyName(rs.getString("company_name"));
                 page.setEmail(rs.getString("email"));
                 try {
-                    page.setBookmark(objectMapper.readTree(rs.getString("bookmark")));
+                    page.setBookmark(objectMapper.readValue(rs.getString("bookmark"),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<DesignPageModel.BookmarkItem>>() {
+                    }));
                     page.setCollection(objectMapper.readTree(rs.getString("collection")));
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException("Error parsing JSON data", e);
@@ -111,7 +113,9 @@ public class DesignPageController {
                 page.setCompanyName(rs.getString("company_name"));
                 page.setEmail(rs.getString("email"));
                 try {
-                    page.setBookmark(objectMapper.readTree(rs.getString("bookmark")));
+                    page.setBookmark(objectMapper.readValue(rs.getString("bookmark"),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<DesignPageModel.BookmarkItem>>() {
+                    }));
                     page.setCollection(objectMapper.readTree(rs.getString("collection")));
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException("Error parsing JSON data", e);
