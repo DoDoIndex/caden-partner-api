@@ -1,5 +1,7 @@
 package com.railway.helloworld.model;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -10,8 +12,30 @@ public class DesignPageModel {
     @JsonProperty("company_name")
     private String companyName;
     private String email;
-    private JsonNode bookmark;
+    private List<BookmarkItem> bookmark;
     private JsonNode collection;
+
+    public static class BookmarkItem {
+
+        private Integer productId;
+        private Double partnerPrice;
+
+        public Integer getProductId() {
+            return productId;
+        }
+
+        public void setProductId(Integer productId) {
+            this.productId = productId;
+        }
+
+        public Double getPartnerPrice() {
+            return partnerPrice;
+        }
+
+        public void setPartnerPrice(Double partnerPrice) {
+            this.partnerPrice = partnerPrice;
+        }
+    }
 
     public String getPhone() {
         return phone;
@@ -37,11 +61,11 @@ public class DesignPageModel {
         this.email = email;
     }
 
-    public JsonNode getBookmark() {
+    public List<BookmarkItem> getBookmark() {
         return bookmark;
     }
 
-    public void setBookmark(JsonNode bookmark) {
+    public void setBookmark(List<BookmarkItem> bookmark) {
         this.bookmark = bookmark;
     }
 
