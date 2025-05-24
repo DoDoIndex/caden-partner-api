@@ -4,19 +4,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-<<<<<<< HEAD
 import org.springframework.context.annotation.ComponentScan;
-=======
->>>>>>> 2199edf381a07875fe63c8fdaa14847f4b5c8f0a
 
 import io.github.cdimascio.dotenv.Dotenv;
 
 @SpringBootApplication
 @RestController
-<<<<<<< HEAD
 @ComponentScan(basePackages = {"com.railway.helloworld", "com.railway.config", "com.railway.service"})
-=======
->>>>>>> 2199edf381a07875fe63c8fdaa14847f4b5c8f0a
 public class HelloworldApplication {
 
     public static void main(String[] args) {
@@ -25,10 +19,7 @@ public class HelloworldApplication {
         if (System.getenv("RAILWAY_ENVIRONMENT") == null) {
             Dotenv dotenv = Dotenv.load();
 
-<<<<<<< HEAD
             // Load database configuration
-=======
->>>>>>> 2199edf381a07875fe63c8fdaa14847f4b5c8f0a
             String dbUrl = dotenv.get("DATABASE_URL");
             if (dbUrl != null) {
                 System.setProperty("DATABASE_URL", dbUrl);
@@ -43,15 +34,12 @@ public class HelloworldApplication {
             if (dbPassword != null) {
                 System.setProperty("POSTGRES_PASSWORD", dbPassword);
             }
-<<<<<<< HEAD
 
             // Load OpenAI configuration
             String openaiKey = dotenv.get("OPENAI_API_KEY");
             if (openaiKey != null) {
                 System.setProperty("openai.api.key", openaiKey);
             }
-=======
->>>>>>> 2199edf381a07875fe63c8fdaa14847f4b5c8f0a
         }
 
         SpringApplication.run(HelloworldApplication.class, args);
