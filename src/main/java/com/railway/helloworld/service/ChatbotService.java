@@ -7,23 +7,25 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.service.OpenAiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class ChatbotService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ChatbotService.class);
+
     @Autowired
-    private RestTemplate restTemplate;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private OpenAiService openAiService;
 
-    @Value("${api.host}")
-    private String apiHost;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String SYSTEM_PROMPT = """
         You are a helpful tile shopping assistant. Extract search criteria from user messages or handle bookmark/collection actions.
@@ -99,8 +101,7 @@ public class ChatbotService {
             String gptResponse = openAiService.createChatCompletion(completionRequest)
                     .getChoices().get(0).getMessage().getContent();
 
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> parsedResponse = mapper.readValue(gptResponse, Map.class);
+            Map<String, Object> parsedResponse = objectMapper.readValue(gptResponse, Map.class);
 
             String action = (String) parsedResponse.get("action");
             if ("search".equals(action)) {
@@ -148,14 +149,31 @@ public class ChatbotService {
     }
 
     private List<Product> searchProductsWithMultipleCriteria(List<Map<String, String>> criteria) {
-        Product[] products = restTemplate.getForObject(apiHost + "/api/catalog", Product[].class);
-        if (products == null) {
+        String sql = "SELECT product_id, product_details FROM tiles";
+        try {
+            List<Product> products = jdbcTemplate.query(sql, (rs, rowNum) -> {
+                Product product = new Product();
+                product.setProductId(rs.getInt("product_id"));
+                String detailsJson = rs.getString("product_details");
+                try {
+                    Map<String, Object> details = objectMapper.readValue(detailsJson,
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                    });
+                    product.setProductDetails(details);
+                } catch (Exception ex) {
+                    logger.error("Error parsing product_details JSON for product_id " + rs.getInt("product_id") + ": " + ex.getMessage());
+                    product.setProductDetails(null);
+                }
+                return product;
+            });
+
+            return products.stream()
+                    .filter(product -> matchesAllCriteria(product, criteria))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error occurred while fetching tiles: " + e.getMessage());
             return List.of();
         }
-
-        return Arrays.stream(products)
-                .filter(product -> matchesAllCriteria(product, criteria))
-                .collect(Collectors.toList());
     }
 
     private boolean matchesAllCriteria(Product product, List<Map<String, String>> criteria) {

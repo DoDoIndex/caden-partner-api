@@ -8,6 +8,7 @@ public class Product {
 
     private String id;
     private String name;
+    private int productId;
     private Map<String, Object> productDetails;
 
     public String getId() {
@@ -32,5 +33,13 @@ public class Product {
 
     public void setProductDetails(Map<String, Object> productDetails) {
         this.productDetails = productDetails;
+    }
+
+    public int getProductId() {
+        return productId;
+    }
+
+    public void setProductId(int productId) {
+        this.productId = productId;
     }
 }
