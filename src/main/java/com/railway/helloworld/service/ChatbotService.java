@@ -176,6 +176,7 @@ public class ChatbotService {
         }
     }
 
+    // Check if a product matches all the criteria
     private boolean matchesAllCriteria(Product product, List<Map<String, String>> criteria) {
         Map<String, Object> details = product.getProductDetails();
         if (details == null) {
