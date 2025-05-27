@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class ChatbotService {
@@ -20,6 +21,9 @@ public class ChatbotService {
 
     @Autowired
     private OpenAiService openAiService;
+
+    @Value("${api.host}")
+    private String apiHost;
 
     private static final String SYSTEM_PROMPT = """
         You are a helpful tile shopping assistant. Extract search criteria from user messages or handle bookmark/collection actions.
@@ -144,7 +148,7 @@ public class ChatbotService {
     }
 
     private List<Product> searchProductsWithMultipleCriteria(List<Map<String, String>> criteria) {
-        Product[] products = restTemplate.getForObject("http://localhost:8080/api/catalog", Product[].class);
+        Product[] products = restTemplate.getForObject(apiHost + "/api/catalog", Product[].class);
         if (products == null) {
             return List.of();
         }
