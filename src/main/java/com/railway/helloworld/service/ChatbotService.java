@@ -204,6 +204,7 @@ public class ChatbotService {
         });
     }
 
+    // Check if a string contains another string, ignoring case
     private boolean containsIgnoreCase(String source, String search) {
         if (source == null || search == null || source.equals("null")) {
             return false;
