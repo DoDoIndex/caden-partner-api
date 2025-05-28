@@ -52,6 +52,36 @@ public class ChatbotService {
             ]
         }
         
+        For combined search and bookmark actions, output format should be:
+        {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {
+                    "searchType": one of ["Material", "Color Group", "Size", "Usage", "Trim"],
+                    "searchValue": the value to search for
+                },
+                // ... more criteria if present
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
+        }
+        
+        For combined search, bookmark, and collection actions, output format should be:
+        {
+            "action": "search_bookmark_collection",
+            "criteria": [
+                {
+                    "searchType": one of ["Material", "Color Group", "Size", "Usage", "Trim"],
+                    "searchValue": the value to search for
+                },
+                // ... more criteria if present
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "collectionName": "name of the collection",
+            "collectionResponse": "I've created a new collection and added these tiles to it!"
+        }
+        
         For bookmark actions, output format should be:
         {
             "action": "bookmark",
@@ -64,6 +94,28 @@ public class ChatbotService {
         {
             "action": "collection",
             "prompt": "Which collection would you like to add these tiles to? Or type 'new: [collection name]' to create a new collection."
+        }
+        
+        For direct product name queries, output format should be:
+        {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {"searchType": "Product Name", "searchValue": "Ares Ivory Matt Polished 35×35 Field"}
+            ],
+            "bookmarkResponse": "I've added this tile to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add this tile to a collection? You can choose an existing collection or create a new one."
+        }
+        
+        User: "Add Ares Ivory Matt Polished 35×35 Field to bookmark"
+        Output: {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {"searchType": "Product Name", "searchValue": "Ares Ivory Matt Polished 35×35 Field"}
+            ],
+            "bookmarkResponse": "I've added this tile to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add this tile to a collection? You can choose an existing collection or create a new one."
         }
         
         Examples:
@@ -92,6 +144,61 @@ public class ChatbotService {
                 {"searchType": "Material", "searchValue": "Ceramic"},
                 {"searchType": "Color Group", "searchValue": "Blue"}
             ]
+        }
+        
+        User: "Show me blue tiles and add to bookmark"
+        Output: {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {"searchType": "Color Group", "searchValue": "Blue"}
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
+        }
+        
+        User: "Add blue tiles to bookmark"
+        Output: {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {"searchType": "Color Group", "searchValue": "Blue"}
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
+        }
+        
+        User: "Find blue tiles and add to bookmark"
+        Output: {
+            "action": "search_and_bookmark",
+            "criteria": [
+                {"searchType": "Color Group", "searchValue": "Blue"}
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "askCollection": true,
+            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
+        }
+        
+        User: "Add green tiles to bookmark and create collection named 'ABCD'"
+        Output: {
+            "action": "search_bookmark_collection",
+            "criteria": [
+                {"searchType": "Color Group", "searchValue": "Green"}
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "collectionName": "ABCD",
+            "collectionResponse": "I've created a new collection and added these tiles to it!"
+        }
+        
+        User: "Find me bathroom tiles, bookmark them, and create a collection called 'Bathroom Ideas'"
+        Output: {
+            "action": "search_bookmark_collection",
+            "criteria": [
+                {"searchType": "Usage", "searchValue": "Bathroom"}
+            ],
+            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
+            "collectionName": "Bathroom Ideas",
+            "collectionResponse": "I've created a new collection and added these tiles to it!"
         }
         
         User: "Add to bookmark"
@@ -149,6 +256,39 @@ public class ChatbotService {
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
                 response.put("message", buildResponseMessage(criteria, products.size()));
                 response.put("products", products != null ? products : new ArrayList<>());
+            } else if ("search_and_bookmark".equals(action)) {
+                List<Map<String, String>> criteria = (List<Map<String, String>>) parsedResponse.get("criteria");
+                if (criteria == null) {
+                    throw new IllegalArgumentException("Search criteria cannot be null");
+                }
+                List<Product> products = searchProductsWithMultipleCriteria(criteria);
+
+                // Check if the search is by Product Name
+                boolean isProductNameSearch = criteria.size() == 1 && "product name".equalsIgnoreCase(criteria.get(0).get("searchType"));
+                String productName = isProductNameSearch ? criteria.get(0).get("searchValue") : null;
+
+                if (isProductNameSearch && (products == null || products.isEmpty())) {
+                    // Only show the bookmark message with the product name
+                    response.put("message", "I've added " + productName + " to your bookmarks successfully!");
+                } else {
+                    // Default behavior
+                    response.put("message", buildResponseMessage(criteria, products.size()) + "\n" + parsedResponse.get("bookmarkResponse"));
+                }
+                response.put("products", products != null ? products : new ArrayList<>());
+                response.put("askCollection", parsedResponse.get("askCollection"));
+                response.put("collectionPrompt", parsedResponse.get("collectionPrompt"));
+            } else if ("search_bookmark_collection".equals(action)) {
+                List<Map<String, String>> criteria = (List<Map<String, String>>) parsedResponse.get("criteria");
+                if (criteria == null) {
+                    throw new IllegalArgumentException("Search criteria cannot be null");
+                }
+                List<Product> products = searchProductsWithMultipleCriteria(criteria);
+                String collectionName = (String) parsedResponse.get("collectionName");
+                response.put("message", buildResponseMessage(criteria, products.size()) + "\n"
+                        + parsedResponse.get("bookmarkResponse") + "\n"
+                        + "Collection '" + collectionName + "': " + parsedResponse.get("collectionResponse"));
+                response.put("products", products != null ? products : new ArrayList<>());
+                response.put("collectionName", collectionName);
             } else if ("bookmark".equals(action)) {
                 response.put("message", parsedResponse.get("response"));
                 response.put("askCollection", parsedResponse.get("askCollection"));
@@ -244,6 +384,8 @@ public class ChatbotService {
                     containsIgnoreCase(String.valueOf(details.get("Usage")), searchValue);
                 case "trim" ->
                     containsIgnoreCase(String.valueOf(details.get("Trim")), searchValue);
+                case "product name" ->
+                    containsIgnoreCase(String.valueOf(details.get("Product Name")), searchValue);
                 default ->
                     false;
             };
