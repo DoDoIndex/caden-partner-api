@@ -30,6 +30,16 @@ public class ChatbotService {
     private static final String SYSTEM_PROMPT = """
         You are a helpful tile shopping assistant. Extract search criteria from user messages or handle bookmark/collection actions.
         
+        For greetings (like "hello", "hi", "hey"), output format should be:
+        {
+            "action": "greeting",
+            "response": "Hello! I'm your tile shopping assistant. I can help you with:\n" +
+                       "1. Searching for tiles by material, color, size, usage, or trim\n" +
+                       "2. Managing your bookmarks\n" +
+                       "3. Creating and managing collections\n" +
+                       "Just let me know what you're looking for!"
+        }
+        
         For search queries, output format should be JSON with:
         {
             "action": "search",
@@ -57,6 +67,16 @@ public class ChatbotService {
         }
         
         Examples:
+        User: "Hello"
+        Output: {
+            "action": "greeting",
+            "response": "Hello! I'm your tile shopping assistant. I can help you with:\n" +
+                       "1. Searching for tiles by material, color, size, usage, or trim\n" +
+                       "2. Managing your bookmarks\n" +
+                       "3. Creating and managing collections\n" +
+                       "Just let me know what you're looking for!"
+        }
+        
         User: "Show me porcelain tiles"
         Output: {
             "action": "search",
@@ -87,11 +107,21 @@ public class ChatbotService {
 
     public Map<String, Object> processUserMessage(ChatMessage userMessage) {
         Map<String, Object> response = new HashMap<>();
+        // Initialize default values
+        response.put("products", new ArrayList<>());
+        response.put("error", false);
+        response.put("action", "unknown");
 
         try {
+            if (userMessage == null || userMessage.getMessage() == null) {
+                throw new IllegalArgumentException("User message cannot be null");
+            }
+
             List<com.theokanning.openai.completion.chat.ChatMessage> messages = new ArrayList<>();
             messages.add(new com.theokanning.openai.completion.chat.ChatMessage("system", SYSTEM_PROMPT));
             messages.add(new com.theokanning.openai.completion.chat.ChatMessage("user", userMessage.getMessage()));
+
+            logger.debug("Sending request to OpenAI with messages: {}", messages);
 
             ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
                     .model("gpt-3.5-turbo")
@@ -101,33 +131,49 @@ public class ChatbotService {
             String gptResponse = openAiService.createChatCompletion(completionRequest)
                     .getChoices().get(0).getMessage().getContent();
 
+            logger.debug("Received response from OpenAI: {}", gptResponse);
+
             Map<String, Object> parsedResponse = objectMapper.readValue(gptResponse, Map.class);
+            logger.debug("Parsed response: {}", parsedResponse);
 
             String action = (String) parsedResponse.get("action");
-            if ("search".equals(action)) {
-                // Handle multi-criteria search
+            response.put("action", action != null ? action : "unknown");
+
+            if ("greeting".equals(action)) {
+                response.put("message", parsedResponse.get("response"));
+            } else if ("search".equals(action)) {
                 List<Map<String, String>> criteria = (List<Map<String, String>>) parsedResponse.get("criteria");
+                if (criteria == null) {
+                    throw new IllegalArgumentException("Search criteria cannot be null");
+                }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
                 response.put("message", buildResponseMessage(criteria, products.size()));
-                response.put("products", products);
-
+                response.put("products", products != null ? products : new ArrayList<>());
             } else if ("bookmark".equals(action)) {
                 response.put("message", parsedResponse.get("response"));
                 response.put("askCollection", parsedResponse.get("askCollection"));
                 response.put("collectionPrompt", parsedResponse.get("collectionPrompt"));
-
             } else if ("collection".equals(action)) {
                 response.put("message", parsedResponse.get("prompt"));
-                response.put("action", "collection");
-
             } else {
                 response.put("message", parsedResponse.get("response"));
             }
 
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid input: {}", e.getMessage());
+            response.put("message", "Invalid input: " + e.getMessage());
+            response.put("error", true);
+            response.put("action", "error");
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            logger.error("Failed to parse OpenAI response: {}", e.getMessage());
+            response.put("message", "Failed to process the response. Please try again.");
+            response.put("error", true);
+            response.put("action", "error");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error processing message: {}", e.getMessage(), e);
             response.put("message", "I encountered an error processing your request. Could you please try again?");
             response.put("error", true);
+            response.put("action", "error");
         }
 
         return response;
