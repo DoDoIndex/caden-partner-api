@@ -40,6 +40,12 @@ public class HelloworldApplication {
             if (openaiKey != null) {
                 System.setProperty("openai.api.key", openaiKey);
             }
+
+            // Load Mail configuration
+            String mailPassword = dotenv.get("MAIL_PASSWORD");
+            if (mailPassword != null) {
+                System.setProperty("MAIL_PASSWORD", mailPassword);
+            }
         }
 
         SpringApplication.run(HelloworldApplication.class, args);
