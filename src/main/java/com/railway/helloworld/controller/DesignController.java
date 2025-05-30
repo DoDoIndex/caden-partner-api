@@ -56,7 +56,7 @@ public class DesignController {
             // Create the request entity
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            // Make the request to the design API
+            // Make the request to the design API .
             ResponseEntity<byte[]> response = restTemplate.exchange(
                     designApiUrl + "/api/replace-tile/",
                     HttpMethod.POST,
