@@ -40,6 +40,18 @@ public class ChatbotService {
                        "Just let me know what you're looking for!"
         }
         
+        For thank you messages (like "thank you", "thanks", "thank you so much"), output format should be:
+        {
+            "action": "thank_you",
+            "response": "It's my pleasure to help you, tell me if you need anything else"
+        }
+        
+        For collection creation, treat 'add collection named [name]' and 'create collection named [name]' as the same action. If the user asks to add or create a collection but does not provide a name, respond with:
+        {
+            "action": "collection",
+            "prompt": "What would you like to name the collection? Please provide a name."
+        }
+        
         For search queries, output format should be JSON with:
         {
             "action": "search",
