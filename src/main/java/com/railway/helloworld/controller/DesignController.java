@@ -16,9 +16,6 @@ import java.io.IOException;
 @CrossOrigin(origins = "*")
 public class DesignController {
 
-    @Value("${app.design.api.url}")
-    private String designApiUrl;
-
     private final RestTemplate restTemplate;
 
     public DesignController(RestTemplate restTemplate) {
@@ -58,7 +55,7 @@ public class DesignController {
 
             // Make the request to the design API
             ResponseEntity<byte[]> response = restTemplate.exchange(
-                    designApiUrl + "/api/replace-tile/",
+                    "http://localhost:8080/api/replace-tile/",
                     HttpMethod.POST,
                     requestEntity,
                     byte[].class
