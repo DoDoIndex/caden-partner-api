@@ -55,7 +55,7 @@ public class DesignController {
 
             // Make the request to the design API
             ResponseEntity<byte[]> response = restTemplate.exchange(
-                    "http://localhost:8080/api/replace-tile/",
+                    "http://localhost:8000/api/replace-tile/",
                     HttpMethod.POST,
                     requestEntity,
                     byte[].class
