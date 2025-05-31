@@ -27,6 +27,7 @@ public class ChatbotService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // System prompt for the chatbot
     private static final String SYSTEM_PROMPT = """
 You are a helpful tile shopping assistant. Always reply in JSON using one of these actions: greeting, thank_you, search, search_and_bookmark, search_bookmark_collection, bookmark, collection, or null.
 
