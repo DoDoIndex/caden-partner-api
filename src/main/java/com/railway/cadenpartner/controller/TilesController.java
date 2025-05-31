@@ -1,6 +1,7 @@
-package com.railway.helloworld.controller;
+package com.railway.cadenpartner.controller;
 
-import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,11 +20,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVReader;
-import com.railway.helloworld.model.TilesModel;
+import com.railway.cadenpartner.model.TilesModel;
 
 @RestController
 @RequestMapping("/api")
@@ -39,9 +42,16 @@ public class TilesController {
 
     // Import catalog data from CSV file
     @PostMapping("/catalog/sync")
-    public ResponseEntity<String> importCatalogData() {
-        String csvFile = "E:/DaiHoc/HK6_2024-2025/T2. IE303 - Cong nghe Java/Project/data.csv";
-        try (CSVReader reader = new CSVReader(new FileReader(csvFile))) {
+    public ResponseEntity<String> importCatalogData(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please upload a CSV file.");
+        }
+
+        if (!file.getOriginalFilename().toLowerCase().endsWith(".csv")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Only CSV files are allowed.");
+        }
+
+        try (CSVReader reader = new CSVReader(new BufferedReader(new InputStreamReader(file.getInputStream())))) {
             ObjectMapper mapper = new ObjectMapper();
             String[] headers = reader.readNext();
             if (headers == null) {

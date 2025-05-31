@@ -1,4 +1,4 @@
-package com.railway.helloworld.model;
+package com.railway.cadenpartner.model;
 
 import java.util.Map;
 

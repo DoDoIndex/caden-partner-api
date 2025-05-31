@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.railway</groupId>
-    <artifactId>helloworld</artifactId>
+    <artifactId>caden-partner</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>helloworld</name>
+    <name>caden-partner</name>
     <description>Demo project for Spring Boot</description>
     <url/>
     <licenses>
@@ -123,7 +123,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    com.railway.helloworld.HelloWorldApplication
+                    <mainClass>com.railway.cadenpartner.CadenPartnerApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

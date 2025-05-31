@@ -1,17 +1,19 @@
-package com.railway.helloworld;
+package com.railway.cadenpartner;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
 @SpringBootApplication
 @RestController
-@ComponentScan(basePackages = {"com.railway.helloworld", "com.railway.config", "com.railway.service"})
-public class HelloworldApplication {
+@EnableScheduling
+@ComponentScan(basePackages = {"com.railway.cadenpartner", "com.railway.config", "com.railway.service"})
+public class CadenPartnerApplication {
 
     public static void main(String[] args) {
         // Load environment variables from .env
@@ -48,7 +50,7 @@ public class HelloworldApplication {
             }
         }
 
-        SpringApplication.run(HelloworldApplication.class, args);
+        SpringApplication.run(CadenPartnerApplication.class, args);
     }
 
     @GetMapping("/")
