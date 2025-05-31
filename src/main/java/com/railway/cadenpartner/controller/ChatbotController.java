@@ -1,9 +1,9 @@
-package com.railway.helloworld.controller;
+package com.railway.cadenpartner.controller;
 
-import com.railway.helloworld.model.ChatRequest;
-import com.railway.helloworld.model.ChatMessage;
-import com.railway.helloworld.model.Product;
-import com.railway.helloworld.service.ChatbotService;
+import com.railway.cadenpartner.model.ChatRequest;
+import com.railway.cadenpartner.model.ChatMessage;
+import com.railway.cadenpartner.model.Product;
+import com.railway.cadenpartner.service.ChatbotService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

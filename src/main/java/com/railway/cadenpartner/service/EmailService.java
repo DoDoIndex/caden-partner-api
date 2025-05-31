@@ -1,6 +1,6 @@
-package com.railway.helloworld.service;
+package com.railway.cadenpartner.service;
 
-import com.railway.helloworld.model.PartnerRegistration;
+import com.railway.cadenpartner.model.PartnerRegistration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;

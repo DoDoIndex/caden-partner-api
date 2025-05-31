@@ -1,8 +1,8 @@
-package com.railway.helloworld.service;
+package com.railway.cadenpartner.service;
 
-import com.railway.helloworld.model.Product;
-import com.railway.helloworld.model.ChatRequest;
-import com.railway.helloworld.model.ChatMessage;
+import com.railway.cadenpartner.model.Product;
+import com.railway.cadenpartner.model.ChatRequest;
+import com.railway.cadenpartner.model.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.service.OpenAiService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +13,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 @Service
 public class ChatbotService {
@@ -77,6 +79,40 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                 throw new IllegalArgumentException("User message cannot be null");
             }
 
+            // Preprocess: convert double-quoted collection names to single quotes for LLM compatibility
+            String msg = userMessage.getMessage();
+            msg = msg.replaceAll("create collection \"([^\"]+)\"", "create collection '$1'");
+            msg = msg.replaceAll("create collection named \"([^\"]+)\"", "create collection named '$1'");
+            msg = msg.replaceAll("and create collection \"([^\"]+)\"", "and create collection '$1'");
+            userMessage.setMessage(msg);
+
+            // Rewrite prompt if it starts with 'bookmark'
+            String originalPrompt = userMessage.getMessage().trim();
+            if (originalPrompt.toLowerCase().startsWith("bookmark ")) {
+                String criteria = originalPrompt.substring(9).trim();
+                String rewrittenPrompt = "Find " + criteria + " and add to bookmark";
+                userMessage.setMessage(rewrittenPrompt);
+            }
+
+            // Detect 'show bookmark' or 'list bookmark' and handle directly
+            String lowerPrompt = userMessage.getMessage().toLowerCase().trim();
+            if (lowerPrompt.equals("show bookmark") || lowerPrompt.equals("list bookmark") || lowerPrompt.equals("show my bookmark") || lowerPrompt.equals("list my bookmark")) {
+                response.put("action", "show_bookmark");
+                // TODO: Replace with actual bookmarked products retrieval
+                response.put("products", new ArrayList<>()); // Placeholder: return actual bookmarks here
+                response.put("message", "Here are the tiles you've added to your bookmark.");
+                return response;
+            }
+
+            // Detect 'add to bookmark' and handle directly
+            if (lowerPrompt.equals("add to bookmark")) {
+                response.put("action", "bookmark");
+                response.put("message", "I've added these tiles to your bookmarks successfully!");
+                response.put("askCollection", true);
+                response.put("collectionPrompt", "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one.");
+                return response;
+            }
+
             List<com.theokanning.openai.completion.chat.ChatMessage> messages = new ArrayList<>();
             messages.add(new com.theokanning.openai.completion.chat.ChatMessage("system", SYSTEM_PROMPT));
             messages.add(new com.theokanning.openai.completion.chat.ChatMessage("user", userMessage.getMessage()));
@@ -104,6 +140,19 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
             String action = (String) parsedResponse.get("action");
             response.put("action", action != null ? action : "unknown");
 
+            // --- Insert askCollection logic here ---
+            boolean askCollection = false;
+            String prompt = userMessage.getMessage().toLowerCase().trim();
+            if (prompt.contains("collection")) {
+                if (prompt.matches(".*\\b(find|show)\\b.*collection.*")
+                        || prompt.matches("^collection\\s+\\w+.*")
+                        || prompt.equals("show all collections")
+                        || prompt.equals("show collections")) {
+                    askCollection = true;
+                }
+            }
+            // --- End askCollection logic ---
+
             if ("greeting".equals(action)) {
                 response.put("message", parsedResponse.get("response"));
             } else if ("search".equals(action)) {
@@ -112,18 +161,7 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
-                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
-                for (Product product : products) {
-                    Map<String, Object> details = product.getProductDetails();
-                    if (details != null) {
-                        Object imagesObj = details.get("Images");
-                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
-                            String firstImage = imagesStr.split("\\n")[0];
-                            details.put("Image", firstImage);
-                        }
-                        details.remove("Images");
-                    }
-                }
+                processProductImages(products);
                 response.put("message", buildResponseMessage(criteria, products.size()));
                 response.put("products", products != null ? products : new ArrayList<>());
             } else if ("search_and_bookmark".equals(action)) {
@@ -132,32 +170,18 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
-                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
-                for (Product product : products) {
-                    Map<String, Object> details = product.getProductDetails();
-                    if (details != null) {
-                        Object imagesObj = details.get("Images");
-                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
-                            String firstImage = imagesStr.split("\\n")[0];
-                            details.put("Image", firstImage);
-                        }
-                        details.remove("Images");
-                    }
-                }
+                processProductImages(products);
 
-                // Check if the search is by Product Name
                 boolean isProductNameSearch = criteria.size() == 1 && "product name".equalsIgnoreCase(criteria.get(0).get("searchType"));
                 String productName = isProductNameSearch ? criteria.get(0).get("searchValue") : null;
 
                 if (isProductNameSearch && (products == null || products.isEmpty())) {
-                    // Only show the bookmark message with the product name
                     response.put("message", "I've added " + productName + " to your bookmarks successfully!");
                 } else {
-                    // Default behavior
                     response.put("message", buildResponseMessage(criteria, products.size()) + "\n" + parsedResponse.get("bookmarkResponse"));
                 }
                 response.put("products", products != null ? products : new ArrayList<>());
-                response.put("askCollection", parsedResponse.get("askCollection"));
+                response.put("askCollection", askCollection);
                 response.put("collectionPrompt", parsedResponse.get("collectionPrompt"));
             } else if ("search_bookmark_collection".equals(action)) {
                 List<Map<String, String>> criteria = (List<Map<String, String>>) parsedResponse.get("criteria");
@@ -165,18 +189,7 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
-                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
-                for (Product product : products) {
-                    Map<String, Object> details = product.getProductDetails();
-                    if (details != null) {
-                        Object imagesObj = details.get("Images");
-                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
-                            String firstImage = imagesStr.split("\\n")[0];
-                            details.put("Image", firstImage);
-                        }
-                        details.remove("Images");
-                    }
-                }
+                processProductImages(products);
                 String collectionName = (String) parsedResponse.get("collectionName");
                 response.put("message", buildResponseMessage(criteria, products.size()) + "\n"
                         + parsedResponse.get("bookmarkResponse") + "\n"
@@ -185,10 +198,15 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                 response.put("collectionName", collectionName);
             } else if ("bookmark".equals(action)) {
                 response.put("message", parsedResponse.get("response"));
-                response.put("askCollection", parsedResponse.get("askCollection"));
+                response.put("askCollection", askCollection);
                 response.put("collectionPrompt", parsedResponse.get("collectionPrompt"));
             } else if ("collection".equals(action)) {
                 response.put("message", parsedResponse.get("prompt"));
+                // Try to extract collection name from the prompt or message
+                String collectionName = extractCollectionName(userMessage.getMessage());
+                if (collectionName != null && !collectionName.isEmpty()) {
+                    response.put("collectionName", collectionName);
+                }
             } else {
                 response.put("message", parsedResponse.get("response"));
             }
@@ -298,5 +316,45 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
         // Implement the logic to extract only the JSON part from the response
         // This is a placeholder and should be replaced with the actual implementation
         return response;
+    }
+
+    private void processProductImages(List<Product> products) {
+        for (Product product : products) {
+            Map<String, Object> details = product.getProductDetails();
+            if (details != null) {
+                Object imagesObj = details.get("Images");
+                if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
+                    String firstImage = imagesStr.split("\\n")[0];
+                    details.put("Image", firstImage);
+                }
+                details.remove("Images");
+            }
+        }
+    }
+
+    private String extractCollectionName(String prompt) {
+        if (prompt == null) {
+            return null;
+        }
+        String lower = prompt.toLowerCase();
+        // Match patterns like: create collection named 'ABCD', create collection 'ABCD', collection ABCD
+        Pattern pattern = Pattern.compile("collection(?: named)? ['\"]?([\\w\\s-]+)['\"]?", Pattern.CASE_INSENSITIVE);
+        Matcher m = pattern.matcher(prompt);
+        if (m.find()) {
+            return m.group(1).trim();
+        }
+        // Fallback: try to extract after 'collection '
+        int idx = lower.indexOf("collection ");
+        if (idx != -1) {
+            String rest = prompt.substring(idx + 11).trim();
+            if (!rest.isEmpty()) {
+                // Remove quotes if present
+                if ((rest.startsWith("'") && rest.endsWith("'")) || (rest.startsWith("\"") && rest.endsWith("\""))) {
+                    rest = rest.substring(1, rest.length() - 1);
+                }
+                return rest;
+            }
+        }
+        return null;
     }
 }

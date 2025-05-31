@@ -1,7 +1,7 @@
-package com.railway.helloworld.controller;
+package com.railway.cadenpartner.controller;
 
-import com.railway.helloworld.model.PartnerRegistration;
-import com.railway.helloworld.service.EmailService;
+import com.railway.cadenpartner.model.PartnerRegistration;
+import com.railway.cadenpartner.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
