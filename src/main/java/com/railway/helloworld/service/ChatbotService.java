@@ -28,201 +28,41 @@ public class ChatbotService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String SYSTEM_PROMPT = """
-        You are a helpful tile shopping assistant. Extract search criteria from user messages or handle bookmark/collection actions.
-        
-        For greetings (like "hello", "hi", "hey"), output format should be:
-        {
-            "action": "greeting",
-            "response": "Hello! I'm your tile shopping assistant. I can help you with:\n" +
-                       "1. Searching for tiles by material, color, size, usage, or trim\n" +
-                       "2. Managing your bookmarks\n" +
-                       "3. Creating and managing collections\n" +
-                       "Just let me know what you're looking for!"
-        }
-        
-        For thank you messages (like "thank you", "thanks", "thank you so much"), output format should be:
-        {
-            "action": "thank_you",
-            "response": "It's my pleasure to help you, tell me if you need anything else"
-        }
-        
-        For collection creation, treat 'add collection named [name]' and 'create collection named [name]' as the same action. If the user asks to add or create a collection but does not provide a name, respond with:
-        {
-            "action": "collection",
-            "prompt": "What would you like to name the collection? Please provide a name."
-        }
-        
-        For search queries, output format should be JSON with:
-        {
-            "action": "search",
-            "criteria": [
-                {
-                    "searchType": one of ["Material", "Color Group", "Size", "Usage", "Trim"],
-                    "searchValue": the value to search for
-                },
-                // ... more criteria if present
-            ]
-        }
-        
-        For combined search and bookmark actions, output format should be:
-        {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {
-                    "searchType": one of ["Material", "Color Group", "Size", "Usage", "Trim"],
-                    "searchValue": the value to search for
-                },
-                // ... more criteria if present
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        For combined search, bookmark, and collection actions, output format should be:
-        {
-            "action": "search_bookmark_collection",
-            "criteria": [
-                {
-                    "searchType": one of ["Material", "Color Group", "Size", "Usage", "Trim"],
-                    "searchValue": the value to search for
-                },
-                // ... more criteria if present
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "collectionName": "name of the collection",
-            "collectionResponse": "I've created a new collection and added these tiles to it!"
-        }
-        
-        For bookmark actions, output format should be:
-        {
-            "action": "bookmark",
-            "response": "confirmation message about bookmark status",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        For collection actions, output format should be:
-        {
-            "action": "collection",
-            "prompt": "Which collection would you like to add these tiles to? Or type 'new: [collection name]' to create a new collection."
-        }
-        
-        For direct product name queries, output format should be:
-        {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {"searchType": "Product Name", "searchValue": "Ares Ivory Matt Polished 35×35 Field"}
-            ],
-            "bookmarkResponse": "I've added this tile to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add this tile to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        User: "Add Ares Ivory Matt Polished 35×35 Field to bookmark"
-        Output: {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {"searchType": "Product Name", "searchValue": "Ares Ivory Matt Polished 35×35 Field"}
-            ],
-            "bookmarkResponse": "I've added this tile to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add this tile to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        Examples:
-        User: "Hello"
-        Output: {
-            "action": "greeting",
-            "response": "Hello! I'm your tile shopping assistant. I can help you with:\n" +
-                       "1. Searching for tiles by material, color, size, usage, or trim\n" +
-                       "2. Managing your bookmarks\n" +
-                       "3. Creating and managing collections\n" +
-                       "Just let me know what you're looking for!"
-        }
-        
-        User: "Show me porcelain tiles"
-        Output: {
-            "action": "search",
-            "criteria": [
-                {"searchType": "Material", "searchValue": "Porcelain"}
-            ]
-        }
-        
-        User: "I need ceramic blue tiles"
-        Output: {
-            "action": "search",
-            "criteria": [
-                {"searchType": "Material", "searchValue": "Ceramic"},
-                {"searchType": "Color Group", "searchValue": "Blue"}
-            ]
-        }
-        
-        User: "Show me blue tiles and add to bookmark"
-        Output: {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {"searchType": "Color Group", "searchValue": "Blue"}
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        User: "Add blue tiles to bookmark"
-        Output: {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {"searchType": "Color Group", "searchValue": "Blue"}
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        User: "Find blue tiles and add to bookmark"
-        Output: {
-            "action": "search_and_bookmark",
-            "criteria": [
-                {"searchType": "Color Group", "searchValue": "Blue"}
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        User: "Add green tiles to bookmark and create collection named 'ABCD'"
-        Output: {
-            "action": "search_bookmark_collection",
-            "criteria": [
-                {"searchType": "Color Group", "searchValue": "Green"}
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "collectionName": "ABCD",
-            "collectionResponse": "I've created a new collection and added these tiles to it!"
-        }
-        
-        User: "Find me bathroom tiles, bookmark them, and create a collection called 'Bathroom Ideas'"
-        Output: {
-            "action": "search_bookmark_collection",
-            "criteria": [
-                {"searchType": "Usage", "searchValue": "Bathroom"}
-            ],
-            "bookmarkResponse": "I've added these tiles to your bookmarks successfully!",
-            "collectionName": "Bathroom Ideas",
-            "collectionResponse": "I've created a new collection and added these tiles to it!"
-        }
-        
-        User: "Add to bookmark"
-        Output: {
-            "action": "bookmark",
-            "response": "I've added these tiles to your bookmarks successfully!",
-            "askCollection": true,
-            "collectionPrompt": "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one."
-        }
-        
-        If you can't determine the action, respond with: {"action": null, "response": "I'm not sure what you'd like to do. Could you please rephrase that?"}
-        """;
+You are a helpful tile shopping assistant. Always reply in JSON using one of these actions: greeting, thank_you, search, search_and_bookmark, search_bookmark_collection, bookmark, collection, or null.
+
+**Output formats:**
+- greeting: {\"action\": \"greeting\", \"response\": \"...\"}
+- thank_you: {\"action\": \"thank_you\", \"response\": \"...\"}
+- search: {\"action\": \"search\", \"criteria\": [{\"searchType\": \"...\", \"searchValue\": \"...\"}]}
+- search_and_bookmark: {\"action\": \"search_and_bookmark\", \"criteria\": [...], \"bookmarkResponse\": \"...\", \"askCollection\": true, \"collectionPrompt\": \"...\"}
+- search_bookmark_collection: {\"action\": \"search_bookmark_collection\", \"criteria\": [...], \"bookmarkResponse\": \"...\", \"collectionName\": \"...\", \"collectionResponse\": \"...\"}
+- bookmark: {\"action\": \"bookmark\", \"response\": \"...\", \"askCollection\": true, \"collectionPrompt\": \"...\"}
+- collection: {\"action\": \"collection\", \"prompt\": \"...\"}
+- If you can't determine the action: {\"action\": null, \"response\": \"I'm not sure what you'd like to do. Could you please rephrase that?\"}
+
+**Instructions:**
+- For greetings (e.g., \"hello\", \"hi\", \"hey\"), use the greeting format.
+- For thanks (e.g., \"thank you\", \"thanks\"), use the thank_you format.
+- For search queries, extract criteria as a list of {\"searchType\", \"searchValue\"}.
+- For requests to bookmark or add to collection, use the appropriate format above.
+- For direct product name queries, treat as search_and_bookmark with searchType \"Product Name\".
+- If a collection name is missing, prompt for it.
+- **For collection creation:**  
+  - If the user says \"Create collection named 'ABCD'\" or \"Create collection 'ABCD'\", treat both as a request to create a collection.  
+  - Respond with: {\"action\": \"collection\", \"prompt\": \"Collection 'ABCD' has been created.\"}
+- For requests like \"Add [criteria] to bookmark\" or \"Find [criteria] and add to bookmark\", first search for tiles matching the criteria, then add those tiles to the bookmark. Respond using the search_and_bookmark action, including the search criteria and a confirmation message.
+- **For prompts like 'Find [criteria] and create collection (named) "ABCD"', search for tiles, add them to bookmarks, and create collection "ABCD" with those tiles. Respond using the search_bookmark_collection action.**
+- Always return valid JSON in a single line (no unescaped newlines).
+
+**Examples:**
+User: \"Create collection named 'ABCD'\" → {\"action\": \"collection\", \"prompt\": \"Collection 'ABCD' has been created.\"}
+User: \"Create collection 'ABCD'\" → {\"action\": \"collection\", \"prompt\": \"Collection 'ABCD' has been created.\"}
+User: \"Show me blue tiles\" → {\"action\": \"search\", \"criteria\": [{\"searchType\": \"Color Group\", \"searchValue\": \"Blue\"}]}
+User: \"Add blue tiles to bookmark\" → {\"action\": \"search_and_bookmark\", \"criteria\": [{\"searchType\": \"Color Group\", \"searchValue\": \"Blue\"}], \"bookmarkResponse\": \"I've added these tiles to your bookmarks successfully!\", \"askCollection\": true, \"collectionPrompt\": \"Would you like to add these tiles to a collection? You can choose an existing collection or create a new one.\"}
+User: \"Add green tiles to bookmark and create collection named 'ABCD'\" → {\"action\": \"search_bookmark_collection\", \"criteria\": [{\"searchType\": \"Color Group\", \"searchValue\": \"Green\"}], \"bookmarkResponse\": \"I've added these tiles to your bookmarks successfully!\", \"collectionName\": \"ABCD\", \"collectionResponse\": \"I've created a new collection and added these tiles to it!\"}
+User: \"Find blue tiles and create collection 'ABCD'\" → {\"action\": \"search_bookmark_collection\", \"criteria\": [{\"searchType\": \"Color Group\", \"searchValue\": \"Blue\"}], \"bookmarkResponse\": \"I've added these tiles to your bookmarks successfully!\", \"collectionName\": \"ABCD\", \"collectionResponse\": \"I've created a new collection and added these tiles to it!\"}
+User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've added these tiles to your bookmarks successfully!\", \"askCollection\": true, \"collectionPrompt\": \"Would you like to add these tiles to a collection? You can choose an existing collection or create a new one.\"}
+""";
 
     public Map<String, Object> processUserMessage(ChatMessage userMessage) {
         Map<String, Object> response = new HashMap<>();
@@ -252,7 +92,12 @@ public class ChatbotService {
 
             logger.debug("Received response from OpenAI: {}", gptResponse);
 
-            Map<String, Object> parsedResponse = objectMapper.readValue(gptResponse, Map.class);
+            // Extract only the JSON part from the response
+            String jsonPart = extractJson(gptResponse);
+            // Replace all newlines with spaces to avoid JSON parsing errors
+            jsonPart = jsonPart.replace("\n", " ");
+            logger.debug("Extracted JSON for parsing: {}", jsonPart);
+            Map<String, Object> parsedResponse = objectMapper.readValue(jsonPart, Map.class);
             logger.debug("Parsed response: {}", parsedResponse);
 
             String action = (String) parsedResponse.get("action");
@@ -266,6 +111,18 @@ public class ChatbotService {
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
+                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
+                for (Product product : products) {
+                    Map<String, Object> details = product.getProductDetails();
+                    if (details != null) {
+                        Object imagesObj = details.get("Images");
+                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
+                            String firstImage = imagesStr.split("\\n")[0];
+                            details.put("Image", firstImage);
+                        }
+                        details.remove("Images");
+                    }
+                }
                 response.put("message", buildResponseMessage(criteria, products.size()));
                 response.put("products", products != null ? products : new ArrayList<>());
             } else if ("search_and_bookmark".equals(action)) {
@@ -274,6 +131,18 @@ public class ChatbotService {
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
+                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
+                for (Product product : products) {
+                    Map<String, Object> details = product.getProductDetails();
+                    if (details != null) {
+                        Object imagesObj = details.get("Images");
+                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
+                            String firstImage = imagesStr.split("\\n")[0];
+                            details.put("Image", firstImage);
+                        }
+                        details.remove("Images");
+                    }
+                }
 
                 // Check if the search is by Product Name
                 boolean isProductNameSearch = criteria.size() == 1 && "product name".equalsIgnoreCase(criteria.get(0).get("searchType"));
@@ -295,6 +164,18 @@ public class ChatbotService {
                     throw new IllegalArgumentException("Search criteria cannot be null");
                 }
                 List<Product> products = searchProductsWithMultipleCriteria(criteria);
+                // For each product, set 'Image' to the first image URL from 'Images', then remove 'Images'
+                for (Product product : products) {
+                    Map<String, Object> details = product.getProductDetails();
+                    if (details != null) {
+                        Object imagesObj = details.get("Images");
+                        if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
+                            String firstImage = imagesStr.split("\\n")[0];
+                            details.put("Image", firstImage);
+                        }
+                        details.remove("Images");
+                    }
+                }
                 String collectionName = (String) parsedResponse.get("collectionName");
                 response.put("message", buildResponseMessage(criteria, products.size()) + "\n"
                         + parsedResponse.get("bookmarkResponse") + "\n"
@@ -410,5 +291,11 @@ public class ChatbotService {
             return false;
         }
         return source.toLowerCase().contains(search);
+    }
+
+    private String extractJson(String response) {
+        // Implement the logic to extract only the JSON part from the response
+        // This is a placeholder and should be replaced with the actual implementation
+        return response;
     }
 }
