@@ -1,4 +1,4 @@
-package com.railway.helloworld.config;
+package com.railway.cadenpartner.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
