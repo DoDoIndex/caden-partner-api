@@ -120,7 +120,7 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
             logger.debug("Sending request to OpenAI with messages: {}", messages);
 
             ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
-                    .model("gpt-3.5-turbo")
+                    .model("gpt-4.1-mini")
                     .messages(messages)
                     .build();
 
@@ -322,12 +322,28 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
         for (Product product : products) {
             Map<String, Object> details = product.getProductDetails();
             if (details != null) {
+                // Get the first image from Images field
                 Object imagesObj = details.get("Images");
                 if (imagesObj instanceof String imagesStr && !imagesStr.isEmpty()) {
                     String firstImage = imagesStr.split("\\n")[0];
                     details.put("Image", firstImage);
                 }
+
+                // Remove all image-related fields
                 details.remove("Images");
+                details.remove("Photo Hover");
+                details.remove("Photo");
+
+                // If no Image field was set from Images, try to use Photo Hover or Photo
+                if (!details.containsKey("Image")) {
+                    Object photoHover = details.get("Photo Hover");
+                    Object photo = details.get("Photo");
+                    if (photoHover instanceof String && !((String) photoHover).isEmpty()) {
+                        details.put("Image", photoHover);
+                    } else if (photo instanceof String && !((String) photo).isEmpty()) {
+                        details.put("Image", photo);
+                    }
+                }
             }
         }
     }
