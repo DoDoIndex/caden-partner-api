@@ -37,9 +37,9 @@ You are a helpful tile shopping assistant. Always reply in JSON using one of the
 - greeting: {\"action\": \"greeting\", \"response\": \"...\"}
 - thank_you: {\"action\": \"thank_you\", \"response\": \"...\"}
 - search: {\"action\": \"search\", \"criteria\": [{\"searchType\": \"...\", \"searchValue\": \"...\"}]}
-- search_and_bookmark: {\"action\": \"search_and_bookmark\", \"criteria\": [...], \"bookmarkResponse\": \"...\", \"askCollection\": true, \"collectionPrompt\": \"...\"}
+- search_and_bookmark: {\"action\": \"search_and_bookmark\", \"criteria\": [...], \"bookmarkResponse\": \"...\", \"collectionPrompt\": \"...\"}
 - search_bookmark_collection: {\"action\": \"search_bookmark_collection\", \"criteria\": [...], \"bookmarkResponse\": \"...\", \"collectionName\": \"...\", \"collectionResponse\": \"...\"}
-- bookmark: {\"action\": \"bookmark\", \"response\": \"...\", \"askCollection\": true, \"collectionPrompt\": \"...\"}
+- bookmark: {\"action\": \"bookmark\", \"response\": \"...\", \"collectionPrompt\": \"...\"}
 - collection: {\"action\": \"collection\", \"prompt\": \"...\"}
 - If you can't determine the action: {\"action\": null, \"response\": \"I'm not sure what you'd like to do. Could you please rephrase that?\"}
 
@@ -109,7 +109,7 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
                 response.put("action", "bookmark");
                 response.put("message", "I've added these tiles to your bookmarks successfully!");
                 response.put("askCollection", true);
-                response.put("collectionPrompt", "Would you like to add these tiles to a collection? You can choose an existing collection or create a new one.");
+                response.put("collectionPrompt", "Would you like to add these tiles to a collection? Type 'Create collection' + 'collection name' to create a new collection.");
                 return response;
             }
 
@@ -286,18 +286,12 @@ User: \"Add to bookmark\" → {\"action\": \"bookmark\", \"response\": \"I've ad
             String searchValue = criterion.get("searchValue").toLowerCase();
 
             return switch (searchType.toLowerCase()) {
-                case "material" ->
+                case "material", "type", "tile type" ->
                     containsIgnoreCase(String.valueOf(details.get("Material")), searchValue);
                 case "color group" ->
                     containsIgnoreCase(String.valueOf(details.get("Color Group")), searchValue);
                 case "size" ->
                     containsIgnoreCase(String.valueOf(details.get("Size")), searchValue);
-                case "usage" ->
-                    containsIgnoreCase(String.valueOf(details.get("Usage")), searchValue);
-                case "trim" ->
-                    containsIgnoreCase(String.valueOf(details.get("Trim")), searchValue);
-                case "product name" ->
-                    containsIgnoreCase(String.valueOf(details.get("Product Name")), searchValue);
                 default ->
                     false;
             };
